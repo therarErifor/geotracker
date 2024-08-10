@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geotracker/src/dependencies_config.dart';
-import 'package:geotracker/src/widgets/widgets_export.dart';
+import 'package:geotracker/src/ui/widgets/widgets_export.dart';
 import 'main_cubit.dart';
 import 'main_state.dart';
 
 class MainScreen extends StatelessWidget {
-  MainCubit? _cubit;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,19 +22,36 @@ class MainScreen extends StatelessWidget {
 
   Widget _buildBody(BuildContext context, MainState state) {
     return state.maybeWhen(
-      orElse: ()=> const LoadingErrorWidget(),
-      init: ()=> const InitializationWidget(),
-      loaded: (options)=> _buildLoaded(context, options),
-      tracking: ()=> _buildTracking(context),
-      
+      orElse: () => const LoadingErrorWidget(),
+      init: () => const InitializationWidget(),
+      loaded: (options, mapController) =>
+          _buildLoaded(context, options, mapController),
+      tracking: () => _buildTracking(context),
     );
   }
 
-  Widget _buildLoaded(BuildContext context, MapOptions options) {
-    return FlutterMap(options: options, children: [
-      TileLayer(
-        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      )
+  Widget _buildLoaded(
+      BuildContext context, MapOptions options, MapController mapController) {
+    return Stack(children: [
+      Map(options: options, controller: mapController),
+      Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: NavigationButtons(
+          zoomIn: ()=> context.read<MainCubit>().zoomIn(),
+          zoomOut: ()=> context.read<MainCubit>().zoomOut(),
+          findMe: ()=> context.read<MainCubit>().findMe()
+        ),
+      ),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: ElevatedButton(
+            onPressed: () => context.read<MainCubit>().startTracking(),
+            child: const Text('Старт'),
+          ),
+        ),
+      ),
     ]);
   }
 

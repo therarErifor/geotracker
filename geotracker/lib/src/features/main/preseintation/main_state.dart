@@ -8,11 +8,12 @@ abstract class MainState with _$MainState {
   const factory MainState.init() = _Init;
 
   const factory MainState.loaded(
-    {required MapOptions options}) = _Loaded;
-  
+      {required MapOptions options,
+      required MapController mapController}) = _Loaded;
+
   const factory MainState.tracking() = _Tracking;
-  
+
   const factory MainState.finish() = _Finish;
-  
-  const factory MainState.error() = _Error; 
+
+  const factory MainState.error() = _Error;
 }

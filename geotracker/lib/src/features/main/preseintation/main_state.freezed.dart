@@ -19,7 +19,8 @@ mixin _$MainState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
@@ -28,7 +29,7 @@ mixin _$MainState {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
@@ -37,7 +38,7 @@ mixin _$MainState {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
@@ -129,7 +130,8 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
@@ -141,7 +143,7 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
@@ -153,7 +155,7 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
@@ -216,7 +218,7 @@ abstract class _$$LoadedImplCopyWith<$Res> {
           _$LoadedImpl value, $Res Function(_$LoadedImpl) then) =
       __$$LoadedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({MapOptions options});
+  $Res call({MapOptions options, MapController mapController});
 }
 
 /// @nodoc
@@ -231,12 +233,17 @@ class __$$LoadedImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? options = null,
+    Object? mapController = null,
   }) {
     return _then(_$LoadedImpl(
       options: null == options
           ? _value.options
           : options // ignore: cast_nullable_to_non_nullable
               as MapOptions,
+      mapController: null == mapController
+          ? _value.mapController
+          : mapController // ignore: cast_nullable_to_non_nullable
+              as MapController,
     ));
   }
 }
@@ -244,14 +251,16 @@ class __$$LoadedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$LoadedImpl implements _Loaded {
-  const _$LoadedImpl({required this.options});
+  const _$LoadedImpl({required this.options, required this.mapController});
 
   @override
   final MapOptions options;
+  @override
+  final MapController mapController;
 
   @override
   String toString() {
-    return 'MainState.loaded(options: $options)';
+    return 'MainState.loaded(options: $options, mapController: $mapController)';
   }
 
   @override
@@ -259,11 +268,13 @@ class _$LoadedImpl implements _Loaded {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$LoadedImpl &&
-            (identical(other.options, options) || other.options == options));
+            (identical(other.options, options) || other.options == options) &&
+            (identical(other.mapController, mapController) ||
+                other.mapController == mapController));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, options);
+  int get hashCode => Object.hash(runtimeType, options, mapController);
 
   @JsonKey(ignore: true)
   @override
@@ -275,38 +286,39 @@ class _$LoadedImpl implements _Loaded {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
   }) {
-    return loaded(options);
+    return loaded(options, mapController);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
   }) {
-    return loaded?.call(options);
+    return loaded?.call(options, mapController);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(options);
+      return loaded(options, mapController);
     }
     return orElse();
   }
@@ -353,9 +365,12 @@ class _$LoadedImpl implements _Loaded {
 }
 
 abstract class _Loaded implements MainState {
-  const factory _Loaded({required final MapOptions options}) = _$LoadedImpl;
+  const factory _Loaded(
+      {required final MapOptions options,
+      required final MapController mapController}) = _$LoadedImpl;
 
   MapOptions get options;
+  MapController get mapController;
   @JsonKey(ignore: true)
   _$$LoadedImplCopyWith<_$LoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
@@ -400,7 +415,8 @@ class _$TrackingImpl implements _Tracking {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
@@ -412,7 +428,7 @@ class _$TrackingImpl implements _Tracking {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
@@ -424,7 +440,7 @@ class _$TrackingImpl implements _Tracking {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
@@ -520,7 +536,8 @@ class _$FinishImpl implements _Finish {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
@@ -532,7 +549,7 @@ class _$FinishImpl implements _Finish {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
@@ -544,7 +561,7 @@ class _$FinishImpl implements _Finish {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
@@ -640,7 +657,8 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options) loaded,
+    required TResult Function(MapOptions options, MapController mapController)
+        loaded,
     required TResult Function() tracking,
     required TResult Function() finish,
     required TResult Function() error,
@@ -652,7 +670,7 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options)? loaded,
+    TResult? Function(MapOptions options, MapController mapController)? loaded,
     TResult? Function()? tracking,
     TResult? Function()? finish,
     TResult? Function()? error,
@@ -664,7 +682,7 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options)? loaded,
+    TResult Function(MapOptions options, MapController mapController)? loaded,
     TResult Function()? tracking,
     TResult Function()? finish,
     TResult Function()? error,
