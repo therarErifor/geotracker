@@ -1,9 +1,20 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:geotracker/src/entities/geo_position.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 
 @singleton
 class GeolocationService {
+
+  Stream<GeoPosition> getPositionStream() {
+    return Geolocator.getPositionStream().map((p) => GeoPosition(
+      longitude: p.longitude, 
+      latitude: p.latitude, 
+      timestamp: p.timestamp, 
+      speed: p.speed)
+      );
+  }
+
   Future<LatLng> getCurrentPositionAsync() async {
     var hasPermissions = await _requestPermissionsAndEnableServiceAsync();
     if (!hasPermissions) {

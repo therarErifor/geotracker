@@ -19,28 +19,30 @@ mixin _$MainState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
+    required TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)
         loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
+    required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
+    TResult? Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
+    TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) =>
@@ -49,8 +51,7 @@ mixin _$MainState {
   TResult map<TResult extends Object?>({
     required TResult Function(_Init value) init,
     required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
+    required TResult Function(_GeolocationIsNotWork value) geolocationIsNotWork,
     required TResult Function(_Error value) error,
   }) =>
       throw _privateConstructorUsedError;
@@ -58,8 +59,7 @@ mixin _$MainState {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(_Init value)? init,
     TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
+    TResult? Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult? Function(_Error value)? error,
   }) =>
       throw _privateConstructorUsedError;
@@ -67,8 +67,7 @@ mixin _$MainState {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_Init value)? init,
     TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
+    TResult Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult Function(_Error value)? error,
     required TResult orElse(),
   }) =>
@@ -130,10 +129,10 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
+    required TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)
         loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
+    required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) {
     return init();
@@ -143,9 +142,10 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
+    TResult? Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) {
     return init?.call();
@@ -155,9 +155,10 @@ class _$InitImpl implements _Init {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
+    TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) {
@@ -172,8 +173,7 @@ class _$InitImpl implements _Init {
   TResult map<TResult extends Object?>({
     required TResult Function(_Init value) init,
     required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
+    required TResult Function(_GeolocationIsNotWork value) geolocationIsNotWork,
     required TResult Function(_Error value) error,
   }) {
     return init(this);
@@ -184,8 +184,7 @@ class _$InitImpl implements _Init {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(_Init value)? init,
     TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
+    TResult? Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult? Function(_Error value)? error,
   }) {
     return init?.call(this);
@@ -196,8 +195,7 @@ class _$InitImpl implements _Init {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_Init value)? init,
     TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
+    TResult Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult Function(_Error value)? error,
     required TResult orElse(),
   }) {
@@ -218,7 +216,10 @@ abstract class _$$LoadedImplCopyWith<$Res> {
           _$LoadedImpl value, $Res Function(_$LoadedImpl) then) =
       __$$LoadedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({MapOptions options, MapController mapController});
+  $Res call(
+      {TrackingStatus trackingStatus,
+      MapOptions options,
+      AnimatedMapController animatedMapController});
 }
 
 /// @nodoc
@@ -232,18 +233,23 @@ class __$$LoadedImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? trackingStatus = null,
     Object? options = null,
-    Object? mapController = null,
+    Object? animatedMapController = null,
   }) {
     return _then(_$LoadedImpl(
+      trackingStatus: null == trackingStatus
+          ? _value.trackingStatus
+          : trackingStatus // ignore: cast_nullable_to_non_nullable
+              as TrackingStatus,
       options: null == options
           ? _value.options
           : options // ignore: cast_nullable_to_non_nullable
               as MapOptions,
-      mapController: null == mapController
-          ? _value.mapController
-          : mapController // ignore: cast_nullable_to_non_nullable
-              as MapController,
+      animatedMapController: null == animatedMapController
+          ? _value.animatedMapController
+          : animatedMapController // ignore: cast_nullable_to_non_nullable
+              as AnimatedMapController,
     ));
   }
 }
@@ -251,16 +257,21 @@ class __$$LoadedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$LoadedImpl implements _Loaded {
-  const _$LoadedImpl({required this.options, required this.mapController});
+  const _$LoadedImpl(
+      {required this.trackingStatus,
+      required this.options,
+      required this.animatedMapController});
 
+  @override
+  final TrackingStatus trackingStatus;
   @override
   final MapOptions options;
   @override
-  final MapController mapController;
+  final AnimatedMapController animatedMapController;
 
   @override
   String toString() {
-    return 'MainState.loaded(options: $options, mapController: $mapController)';
+    return 'MainState.loaded(trackingStatus: $trackingStatus, options: $options, animatedMapController: $animatedMapController)';
   }
 
   @override
@@ -268,13 +279,16 @@ class _$LoadedImpl implements _Loaded {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$LoadedImpl &&
+            (identical(other.trackingStatus, trackingStatus) ||
+                other.trackingStatus == trackingStatus) &&
             (identical(other.options, options) || other.options == options) &&
-            (identical(other.mapController, mapController) ||
-                other.mapController == mapController));
+            (identical(other.animatedMapController, animatedMapController) ||
+                other.animatedMapController == animatedMapController));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, options, mapController);
+  int get hashCode =>
+      Object.hash(runtimeType, trackingStatus, options, animatedMapController);
 
   @JsonKey(ignore: true)
   @override
@@ -286,39 +300,41 @@ class _$LoadedImpl implements _Loaded {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
+    required TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)
         loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
+    required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) {
-    return loaded(options, mapController);
+    return loaded(trackingStatus, options, animatedMapController);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
+    TResult? Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) {
-    return loaded?.call(options, mapController);
+    return loaded?.call(trackingStatus, options, animatedMapController);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
+    TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(options, mapController);
+      return loaded(trackingStatus, options, animatedMapController);
     }
     return orElse();
   }
@@ -328,8 +344,7 @@ class _$LoadedImpl implements _Loaded {
   TResult map<TResult extends Object?>({
     required TResult Function(_Init value) init,
     required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
+    required TResult Function(_GeolocationIsNotWork value) geolocationIsNotWork,
     required TResult Function(_Error value) error,
   }) {
     return loaded(this);
@@ -340,8 +355,7 @@ class _$LoadedImpl implements _Loaded {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(_Init value)? init,
     TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
+    TResult? Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult? Function(_Error value)? error,
   }) {
     return loaded?.call(this);
@@ -352,8 +366,7 @@ class _$LoadedImpl implements _Loaded {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_Init value)? init,
     TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
+    TResult Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult Function(_Error value)? error,
     required TResult orElse(),
   }) {
@@ -366,46 +379,50 @@ class _$LoadedImpl implements _Loaded {
 
 abstract class _Loaded implements MainState {
   const factory _Loaded(
-      {required final MapOptions options,
-      required final MapController mapController}) = _$LoadedImpl;
+          {required final TrackingStatus trackingStatus,
+          required final MapOptions options,
+          required final AnimatedMapController animatedMapController}) =
+      _$LoadedImpl;
 
+  TrackingStatus get trackingStatus;
   MapOptions get options;
-  MapController get mapController;
+  AnimatedMapController get animatedMapController;
   @JsonKey(ignore: true)
   _$$LoadedImplCopyWith<_$LoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$TrackingImplCopyWith<$Res> {
-  factory _$$TrackingImplCopyWith(
-          _$TrackingImpl value, $Res Function(_$TrackingImpl) then) =
-      __$$TrackingImplCopyWithImpl<$Res>;
+abstract class _$$GeolocationIsNotWorkImplCopyWith<$Res> {
+  factory _$$GeolocationIsNotWorkImplCopyWith(_$GeolocationIsNotWorkImpl value,
+          $Res Function(_$GeolocationIsNotWorkImpl) then) =
+      __$$GeolocationIsNotWorkImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$TrackingImplCopyWithImpl<$Res>
-    extends _$MainStateCopyWithImpl<$Res, _$TrackingImpl>
-    implements _$$TrackingImplCopyWith<$Res> {
-  __$$TrackingImplCopyWithImpl(
-      _$TrackingImpl _value, $Res Function(_$TrackingImpl) _then)
+class __$$GeolocationIsNotWorkImplCopyWithImpl<$Res>
+    extends _$MainStateCopyWithImpl<$Res, _$GeolocationIsNotWorkImpl>
+    implements _$$GeolocationIsNotWorkImplCopyWith<$Res> {
+  __$$GeolocationIsNotWorkImplCopyWithImpl(_$GeolocationIsNotWorkImpl _value,
+      $Res Function(_$GeolocationIsNotWorkImpl) _then)
       : super(_value, _then);
 }
 
 /// @nodoc
 
-class _$TrackingImpl implements _Tracking {
-  const _$TrackingImpl();
+class _$GeolocationIsNotWorkImpl implements _GeolocationIsNotWork {
+  const _$GeolocationIsNotWorkImpl();
 
   @override
   String toString() {
-    return 'MainState.tracking()';
+    return 'MainState.geolocationIsNotWork()';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$TrackingImpl);
+        (other.runtimeType == runtimeType &&
+            other is _$GeolocationIsNotWorkImpl);
   }
 
   @override
@@ -415,39 +432,41 @@ class _$TrackingImpl implements _Tracking {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
+    required TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)
         loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
+    required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) {
-    return tracking();
+    return geolocationIsNotWork();
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
+    TResult? Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) {
-    return tracking?.call();
+    return geolocationIsNotWork?.call();
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
+    TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) {
-    if (tracking != null) {
-      return tracking();
+    if (geolocationIsNotWork != null) {
+      return geolocationIsNotWork();
     }
     return orElse();
   }
@@ -457,11 +476,10 @@ class _$TrackingImpl implements _Tracking {
   TResult map<TResult extends Object?>({
     required TResult Function(_Init value) init,
     required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
+    required TResult Function(_GeolocationIsNotWork value) geolocationIsNotWork,
     required TResult Function(_Error value) error,
   }) {
-    return tracking(this);
+    return geolocationIsNotWork(this);
   }
 
   @override
@@ -469,11 +487,10 @@ class _$TrackingImpl implements _Tracking {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(_Init value)? init,
     TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
+    TResult? Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult? Function(_Error value)? error,
   }) {
-    return tracking?.call(this);
+    return geolocationIsNotWork?.call(this);
   }
 
   @override
@@ -481,141 +498,19 @@ class _$TrackingImpl implements _Tracking {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_Init value)? init,
     TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
+    TResult Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult Function(_Error value)? error,
     required TResult orElse(),
   }) {
-    if (tracking != null) {
-      return tracking(this);
+    if (geolocationIsNotWork != null) {
+      return geolocationIsNotWork(this);
     }
     return orElse();
   }
 }
 
-abstract class _Tracking implements MainState {
-  const factory _Tracking() = _$TrackingImpl;
-}
-
-/// @nodoc
-abstract class _$$FinishImplCopyWith<$Res> {
-  factory _$$FinishImplCopyWith(
-          _$FinishImpl value, $Res Function(_$FinishImpl) then) =
-      __$$FinishImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$FinishImplCopyWithImpl<$Res>
-    extends _$MainStateCopyWithImpl<$Res, _$FinishImpl>
-    implements _$$FinishImplCopyWith<$Res> {
-  __$$FinishImplCopyWithImpl(
-      _$FinishImpl _value, $Res Function(_$FinishImpl) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$FinishImpl implements _Finish {
-  const _$FinishImpl();
-
-  @override
-  String toString() {
-    return 'MainState.finish()';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$FinishImpl);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
-        loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
-    required TResult Function() error,
-  }) {
-    return finish();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
-    TResult? Function()? error,
-  }) {
-    return finish?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
-    TResult Function()? error,
-    required TResult orElse(),
-  }) {
-    if (finish != null) {
-      return finish();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Init value) init,
-    required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
-    required TResult Function(_Error value) error,
-  }) {
-    return finish(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Init value)? init,
-    TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
-    TResult? Function(_Error value)? error,
-  }) {
-    return finish?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Init value)? init,
-    TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
-    TResult Function(_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (finish != null) {
-      return finish(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _Finish implements MainState {
-  const factory _Finish() = _$FinishImpl;
+abstract class _GeolocationIsNotWork implements MainState {
+  const factory _GeolocationIsNotWork() = _$GeolocationIsNotWorkImpl;
 }
 
 /// @nodoc
@@ -657,10 +552,10 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() init,
-    required TResult Function(MapOptions options, MapController mapController)
+    required TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)
         loaded,
-    required TResult Function() tracking,
-    required TResult Function() finish,
+    required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) {
     return error();
@@ -670,9 +565,10 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
-    TResult? Function(MapOptions options, MapController mapController)? loaded,
-    TResult? Function()? tracking,
-    TResult? Function()? finish,
+    TResult? Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) {
     return error?.call();
@@ -682,9 +578,10 @@ class _$ErrorImpl implements _Error {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
-    TResult Function(MapOptions options, MapController mapController)? loaded,
-    TResult Function()? tracking,
-    TResult Function()? finish,
+    TResult Function(TrackingStatus trackingStatus, MapOptions options,
+            AnimatedMapController animatedMapController)?
+        loaded,
+    TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) {
@@ -699,8 +596,7 @@ class _$ErrorImpl implements _Error {
   TResult map<TResult extends Object?>({
     required TResult Function(_Init value) init,
     required TResult Function(_Loaded value) loaded,
-    required TResult Function(_Tracking value) tracking,
-    required TResult Function(_Finish value) finish,
+    required TResult Function(_GeolocationIsNotWork value) geolocationIsNotWork,
     required TResult Function(_Error value) error,
   }) {
     return error(this);
@@ -711,8 +607,7 @@ class _$ErrorImpl implements _Error {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(_Init value)? init,
     TResult? Function(_Loaded value)? loaded,
-    TResult? Function(_Tracking value)? tracking,
-    TResult? Function(_Finish value)? finish,
+    TResult? Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult? Function(_Error value)? error,
   }) {
     return error?.call(this);
@@ -723,8 +618,7 @@ class _$ErrorImpl implements _Error {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_Init value)? init,
     TResult Function(_Loaded value)? loaded,
-    TResult Function(_Tracking value)? tracking,
-    TResult Function(_Finish value)? finish,
+    TResult Function(_GeolocationIsNotWork value)? geolocationIsNotWork,
     TResult Function(_Error value)? error,
     required TResult orElse(),
   }) {

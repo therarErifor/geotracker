@@ -8,6 +8,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:flutter_map_animations/flutter_map_animations.dart' as _i851;
 import 'package:geotracker/src/features/main/preseintation/main_cubit.dart'
     as _i17;
 import 'package:geotracker/src/services/geolocation_service.dart' as _i310;
@@ -26,8 +27,14 @@ extension GetItInjectableX on _i174.GetIt {
       environmentFilter,
     );
     gh.singleton<_i310.GeolocationService>(() => _i310.GeolocationService());
-    gh.factory<_i17.MainCubit>(
-        () => _i17.MainCubit(gh<_i310.GeolocationService>()));
+    gh.factoryParam<_i17.MainCubit, _i851.AnimatedMapController, dynamic>((
+      mapController,
+      _,
+    ) =>
+        _i17.MainCubit(
+          gh<_i310.GeolocationService>(),
+          mapController,
+        ));
     return this;
   }
 }
