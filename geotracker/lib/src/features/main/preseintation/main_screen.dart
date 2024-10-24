@@ -8,15 +8,13 @@ import 'main_cubit.dart';
 import 'main_state.dart';
 
 class MainScreen extends StatefulWidget {
-
   @override
   State<StatefulWidget> createState() => MainScreenState();
 }
 
 class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
-
-late final _animatedMapController = AnimatedMapController(vsync: this);
-late MainCubit cubit;
+  late final _animatedMapController = AnimatedMapController(vsync: this);
+  late MainCubit cubit;
 
   @override
   void dispose() {
@@ -37,8 +35,9 @@ late MainCubit cubit;
     return state.maybeWhen(
       orElse: () => const LoadingErrorWidget(),
       init: () => const InitializationWidget(),
-      loaded: (trackingStatus, options, animatedMapController) =>
-          _buildMap(context, trackingStatus, options, animatedMapController.mapController),
+      loaded: (trackingStatus, options, animatedMapController, points) =>
+          _buildMap(context, trackingStatus, options,
+              animatedMapController.mapController),
     );
   }
 
@@ -64,13 +63,5 @@ late MainCubit cubit;
         finishTracking: () => cubit.finishTracking(),
       ),
     ]);
-  }
-
-  Widget _buildTracking(BuildContext context) {
-    return const Placeholder();
-  }
-
-  Widget _buildFinish(BuildContext context, state) {
-    return const Placeholder();
   }
 }

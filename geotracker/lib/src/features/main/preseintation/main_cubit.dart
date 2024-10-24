@@ -18,10 +18,10 @@ class MainCubit extends Cubit<MainState> {
   final GeolocationService _geolocationService;
   final AnimatedMapController _animatedMapController;
   late TrackingStatus _trackingStatus;
-  double _currentZoom = 16;
   late LatLng _currentMapCenter;
   late LatLng _currentUserPosition;
   late MapOptions _mapOptions;
+  List<LatLng> trackPoints = [];
 
   StreamSubscription<GeoPosition>? _positionStreamSubscription;
 
@@ -36,17 +36,13 @@ class MainCubit extends Cubit<MainState> {
   void init() async {
     try {
       _trackingStatus = TrackingStatus.isNotTracking;
-
-      final hasLocationPermission =
-          await _geolocationService.hasPermissionsAsync();
-      if (!hasLocationPermission) {
-        _geolocationService.requestPermissionsAsync();
-      }
-      _currentMapCenter = await _geolocationService.getCurrentPositionAsync();
+      _checkLocationPermissionAsync();
+      final currentPosition = await _geolocationService.getCurrentPositionAsync();
+      _currentMapCenter = currentPosition ?? await _geolocationService.getLastKnownPositionAsync();
       _currentUserPosition = _currentMapCenter;
       _mapOptions = MapOptions(
         onPositionChanged: _onPositionChanged,
-        initialZoom: _currentZoom,
+        initialZoom: 16,
         initialCenter: _currentMapCenter,
       );
       emit(MainState.loaded(
@@ -60,8 +56,7 @@ class MainCubit extends Cubit<MainState> {
 
   void _onPositionChanged(MapCamera camera, bool isThat) {
     _currentMapCenter = camera.center;
-    _currentZoom = camera.zoom;
-    _animatedMapController.mapController.move(camera.center, camera.zoom);
+    _animatedMapController.animateTo(dest: camera.center);
   }
 
   void findMe() async =>
@@ -72,6 +67,8 @@ class MainCubit extends Cubit<MainState> {
   void zoomOut() async => _animatedMapController.animatedZoomOut();
 
   void startTracking() {
+    _positionStreamSubscription = _geolocationService.getPositionStream().listen(_onPositionReseived);
+
     _trackingStatus = TrackingStatus.isTracking;
     emit(MainState.loaded(
         trackingStatus: _trackingStatus,
@@ -95,7 +92,23 @@ class MainCubit extends Cubit<MainState> {
         animatedMapController: _animatedMapController));
   }
 
-  void saveTrack() {}
+  Future<void> _checkLocationPermissionAsync() async {
+    final hasLocationPermission =
+        await _geolocationService.hasPermissionsAsync();
+    if (!hasLocationPermission) {
+      _geolocationService.requestPermissionsAsync();
+    }
+  }
 
-  void deleteTrack() {}
+  void _onPositionReseived(GeoPosition position) {
+    trackPoints.add(LatLng(position.latitude, position.longitude));
+    emit(MainState.loaded(trackingStatus: _trackingStatus, options: _mapOptions, animatedMapController: _animatedMapController, points: trackPoints));
+  }
+
+  Future<void> _onGeolocationStateChanged(bool isLocationIsEnabled) async {
+    if (!isLocationIsEnabled) {
+      emit(MainState.geolocationIsNotWork());
+    }
+    emit(MainState.init());
+  }
 }

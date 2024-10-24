@@ -20,7 +20,7 @@ mixin _$MainState {
   TResult when<TResult extends Object?>({
     required TResult Function() init,
     required TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)
+            AnimatedMapController animatedMapController, List<LatLng>? points)
         loaded,
     required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
@@ -30,7 +30,7 @@ mixin _$MainState {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
     TResult? Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
@@ -40,7 +40,7 @@ mixin _$MainState {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
     TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
@@ -130,7 +130,7 @@ class _$InitImpl implements _Init {
   TResult when<TResult extends Object?>({
     required TResult Function() init,
     required TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)
+            AnimatedMapController animatedMapController, List<LatLng>? points)
         loaded,
     required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
@@ -143,7 +143,7 @@ class _$InitImpl implements _Init {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
     TResult? Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
@@ -156,7 +156,7 @@ class _$InitImpl implements _Init {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
     TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
@@ -219,7 +219,8 @@ abstract class _$$LoadedImplCopyWith<$Res> {
   $Res call(
       {TrackingStatus trackingStatus,
       MapOptions options,
-      AnimatedMapController animatedMapController});
+      AnimatedMapController animatedMapController,
+      List<LatLng>? points});
 }
 
 /// @nodoc
@@ -236,6 +237,7 @@ class __$$LoadedImplCopyWithImpl<$Res>
     Object? trackingStatus = null,
     Object? options = null,
     Object? animatedMapController = null,
+    Object? points = freezed,
   }) {
     return _then(_$LoadedImpl(
       trackingStatus: null == trackingStatus
@@ -250,6 +252,10 @@ class __$$LoadedImplCopyWithImpl<$Res>
           ? _value.animatedMapController
           : animatedMapController // ignore: cast_nullable_to_non_nullable
               as AnimatedMapController,
+      points: freezed == points
+          ? _value._points
+          : points // ignore: cast_nullable_to_non_nullable
+              as List<LatLng>?,
     ));
   }
 }
@@ -260,7 +266,9 @@ class _$LoadedImpl implements _Loaded {
   const _$LoadedImpl(
       {required this.trackingStatus,
       required this.options,
-      required this.animatedMapController});
+      required this.animatedMapController,
+      final List<LatLng>? points})
+      : _points = points;
 
   @override
   final TrackingStatus trackingStatus;
@@ -268,10 +276,19 @@ class _$LoadedImpl implements _Loaded {
   final MapOptions options;
   @override
   final AnimatedMapController animatedMapController;
+  final List<LatLng>? _points;
+  @override
+  List<LatLng>? get points {
+    final value = _points;
+    if (value == null) return null;
+    if (_points is EqualUnmodifiableListView) return _points;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
 
   @override
   String toString() {
-    return 'MainState.loaded(trackingStatus: $trackingStatus, options: $options, animatedMapController: $animatedMapController)';
+    return 'MainState.loaded(trackingStatus: $trackingStatus, options: $options, animatedMapController: $animatedMapController, points: $points)';
   }
 
   @override
@@ -283,12 +300,13 @@ class _$LoadedImpl implements _Loaded {
                 other.trackingStatus == trackingStatus) &&
             (identical(other.options, options) || other.options == options) &&
             (identical(other.animatedMapController, animatedMapController) ||
-                other.animatedMapController == animatedMapController));
+                other.animatedMapController == animatedMapController) &&
+            const DeepCollectionEquality().equals(other._points, _points));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, trackingStatus, options, animatedMapController);
+  int get hashCode => Object.hash(runtimeType, trackingStatus, options,
+      animatedMapController, const DeepCollectionEquality().hash(_points));
 
   @JsonKey(ignore: true)
   @override
@@ -301,12 +319,12 @@ class _$LoadedImpl implements _Loaded {
   TResult when<TResult extends Object?>({
     required TResult Function() init,
     required TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)
+            AnimatedMapController animatedMapController, List<LatLng>? points)
         loaded,
     required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
   }) {
-    return loaded(trackingStatus, options, animatedMapController);
+    return loaded(trackingStatus, options, animatedMapController, points);
   }
 
   @override
@@ -314,12 +332,12 @@ class _$LoadedImpl implements _Loaded {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
     TResult? Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
   }) {
-    return loaded?.call(trackingStatus, options, animatedMapController);
+    return loaded?.call(trackingStatus, options, animatedMapController, points);
   }
 
   @override
@@ -327,14 +345,14 @@ class _$LoadedImpl implements _Loaded {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
     TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(trackingStatus, options, animatedMapController);
+      return loaded(trackingStatus, options, animatedMapController, points);
     }
     return orElse();
   }
@@ -379,14 +397,15 @@ class _$LoadedImpl implements _Loaded {
 
 abstract class _Loaded implements MainState {
   const factory _Loaded(
-          {required final TrackingStatus trackingStatus,
-          required final MapOptions options,
-          required final AnimatedMapController animatedMapController}) =
-      _$LoadedImpl;
+      {required final TrackingStatus trackingStatus,
+      required final MapOptions options,
+      required final AnimatedMapController animatedMapController,
+      final List<LatLng>? points}) = _$LoadedImpl;
 
   TrackingStatus get trackingStatus;
   MapOptions get options;
   AnimatedMapController get animatedMapController;
+  List<LatLng>? get points;
   @JsonKey(ignore: true)
   _$$LoadedImplCopyWith<_$LoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
@@ -433,7 +452,7 @@ class _$GeolocationIsNotWorkImpl implements _GeolocationIsNotWork {
   TResult when<TResult extends Object?>({
     required TResult Function() init,
     required TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)
+            AnimatedMapController animatedMapController, List<LatLng>? points)
         loaded,
     required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
@@ -446,7 +465,7 @@ class _$GeolocationIsNotWorkImpl implements _GeolocationIsNotWork {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
     TResult? Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
@@ -459,7 +478,7 @@ class _$GeolocationIsNotWorkImpl implements _GeolocationIsNotWork {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
     TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult Function()? geolocationIsNotWork,
     TResult Function()? error,
@@ -553,7 +572,7 @@ class _$ErrorImpl implements _Error {
   TResult when<TResult extends Object?>({
     required TResult Function() init,
     required TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)
+            AnimatedMapController animatedMapController, List<LatLng>? points)
         loaded,
     required TResult Function() geolocationIsNotWork,
     required TResult Function() error,
@@ -566,7 +585,7 @@ class _$ErrorImpl implements _Error {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? init,
     TResult? Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult? Function()? geolocationIsNotWork,
     TResult? Function()? error,
@@ -579,7 +598,7 @@ class _$ErrorImpl implements _Error {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? init,
     TResult Function(TrackingStatus trackingStatus, MapOptions options,
-            AnimatedMapController animatedMapController)?
+            AnimatedMapController animatedMapController, List<LatLng>? points)?
         loaded,
     TResult Function()? geolocationIsNotWork,
     TResult Function()? error,

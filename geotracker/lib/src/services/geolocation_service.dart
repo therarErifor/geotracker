@@ -5,41 +5,52 @@ import 'package:latlong2/latlong.dart';
 
 @singleton
 class GeolocationService {
-
   Stream<GeoPosition> getPositionStream() {
     return Geolocator.getPositionStream().map((p) => GeoPosition(
-      longitude: p.longitude, 
-      latitude: p.latitude, 
-      timestamp: p.timestamp, 
-      speed: p.speed)
-      );
+        longitude: p.longitude,
+        latitude: p.latitude,
+        timestamp: p.timestamp,
+        speed: p.speed));
   }
 
-  Future<LatLng> getCurrentPositionAsync() async {
-    var hasPermissions = await _requestPermissionsAndEnableServiceAsync();
-    if (!hasPermissions) {
+  Future<LatLng?> getCurrentPositionAsync() async {
+    bool hasPermissions = await _requestPermissionsAndEnableServiceAsync();
+    if (!hasPermissions) {      
+      return null;
+    }
+
+    var position = await Geolocator.getCurrentPosition();
+    
+    var currentPosition = LatLng(position.latitude, position.longitude);
+    return currentPosition;
+  }
+
+  Future<LatLng> getLastKnownPositionAsync() async {
+    bool hasPermissions = await _requestPermissionsAndEnableServiceAsync();
+    if (!hasPermissions) {      
       return const LatLng(55.755864, 37.617698);
     }
 
     var position = await Geolocator.getLastKnownPosition();
+    
     if (position == null) {
-      position = await Geolocator.getCurrentPosition();
-    } else {
-      Geolocator.getCurrentPosition();
+      return const LatLng(55.755864, 37.617698);
     }
 
-    var currentPosition = position != null ? LatLng(position.latitude, position.longitude) : const LatLng(55.755864, 37.617698);
-    return currentPosition;
+    var lastPosition = LatLng(position.latitude, position.longitude);
+    return lastPosition;
   }
 
   Future<bool> hasPermissionsAsync() async {
     var permissionStatus = await Geolocator.checkPermission();
-    return permissionStatus == LocationPermission.whileInUse || permissionStatus == LocationPermission.always;
+    return permissionStatus == LocationPermission.whileInUse ||
+        permissionStatus == LocationPermission.always;
   }
 
   Future<bool> requestPermissionsAsync() async {
     var permissionStatus = await Geolocator.requestPermission();
-    return permissionStatus == LocationPermission.whileInUse || permissionStatus == LocationPermission.always;
+    return permissionStatus == LocationPermission.whileInUse ||
+        permissionStatus == LocationPermission.always;
   }
 
   Future<bool> _requestPermissionsAndEnableServiceAsync() async {
@@ -54,12 +65,14 @@ class GeolocationService {
         return false;
       }
 
-      if (permissionStatus == LocationPermission.whileInUse || permissionStatus == LocationPermission.always) {
+      if (permissionStatus == LocationPermission.whileInUse ||
+          permissionStatus == LocationPermission.always) {
         return true;
       }
 
       permissionStatus = await Geolocator.requestPermission();
-      return permissionStatus == LocationPermission.whileInUse || permissionStatus == LocationPermission.always;
+      return permissionStatus == LocationPermission.whileInUse ||
+          permissionStatus == LocationPermission.always;
     } catch (error, stack) {
       return false;
     }
