@@ -5,5 +5,5 @@ import 'package:injectable/injectable.dart';
 
 void main() {
   autoConfigDependencies(Environment.dev);
-  runApp(const GeotrackerApp());
+  runApp(const TropaApp());
 }

@@ -7,6 +7,8 @@ import 'main_cubit.dart';
 import 'main_state.dart';
 
 class MainScreen extends StatelessWidget {
+  const MainScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,13 +23,14 @@ class MainScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, MainState state) {
-    return state.maybeWhen(
-      orElse: () => const LoadingErrorWidget(),
-      init: () => const InitializationWidget(),
-      loaded: (options, mapController) =>
-          _buildLoaded(context, options, mapController),
-      tracking: () => _buildTracking(context),
-    );
+    return LoadingErrorWidget();
+    // return state.maybeWhen(
+    //   orElse: () => const LoadingErrorWidget(),
+    //   init: () => const InitializationWidget(),
+    //   loaded: (options, mapController) =>
+    //       _buildLoaded(context, options, mapController),
+    //   tracking: () => _buildTracking(context),
+    // );
   }
 
   Widget _buildLoaded(

@@ -5,7 +5,16 @@ class LoadingErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    return const Placeholder();
+    return const SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text('Что то пошло не так', style: TextStyle(fontSize: 30),)
+          ],
+        ),
+      ),
+    );
   }
 }
