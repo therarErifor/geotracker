@@ -1,0 +1,1 @@
+enum TrackingStatus { rest, tracking, pause, finish }

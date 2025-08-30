@@ -1,11 +1,12 @@
-import 'dart:ui';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geotracker/src/entities/error_type.dart';
+import 'package:geotracker/src/entities/user_position.dart';
 import 'package:geotracker/src/services/geolocation_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../entities/tracking_status.dart';
 import 'main_state.dart';
 
 @Injectable()
@@ -14,32 +15,57 @@ class MainCubit extends Cubit<MainState> {
   final MapController _mapController = MapController();
   double _currentZoom = 16;
   late LatLng _currentMapCenter;
-  late LatLng _currentUserPosition;
+  UserPosition? _userPosition;
 
   MainCubit(GeolocationService geolocationService)
-      : _geolocationService = geolocationService,
-        super(const MainState.init()) {
+    : _geolocationService = geolocationService,
+      super(const MainState.init()) {
     init();
   }
 
-  void init() async {
+  Future<void> init() async {
     try {
-      final hasLocationPermission =
-          await _geolocationService.hasPermissionsAsync();
+      final hasLocationPermission = await _geolocationService
+          .hasPermissionsAsync();
       if (!hasLocationPermission) {
-        _geolocationService.requestPermissionsAsync();
+        await _geolocationService.requestPermissionsAsync();
       }
-      _currentMapCenter = await _geolocationService.getCurrentPositionAsync();
-      _currentUserPosition = _currentMapCenter;
-      emit(MainState.loaded(
+      var result = await _geolocationService.getCurrentPositionAsync();
+      if (result.error == ErrorType.permissionDenied) {
+        emit(MainState.error(error: result.error!));
+      }
+      var position = result.data!;
+      _currentMapCenter = LatLng(position.latitude, position.longitude);
+      _userPosition = UserPosition(
+        currentPosition: _currentMapCenter,
+        heading: position.heading,
+      );
+      emit(
+        MainState.loaded(
           options: MapOptions(
             onPositionChanged: _onPositionChanged,
             initialZoom: _currentZoom,
             initialCenter: _currentMapCenter,
           ),
-          mapController: _mapController));
-    } catch (e, s) {
-      emit(MainState.error());
+          mapController: _mapController,
+          trackingStatus: TrackingStatus.rest,
+          userPosition: _userPosition,
+        ),
+      );
+    } catch (e) {
+      _currentMapCenter = LatLng(58.021688, 56.227984);
+      emit(
+        MainState.loaded(
+          options: MapOptions(
+            onPositionChanged: _onPositionChanged,
+            initialZoom: _currentZoom - 14,
+            initialCenter: _currentMapCenter,
+          ),
+          mapController: _mapController,
+          trackingStatus: TrackingStatus.rest,
+          userPosition: _userPosition,
+        ),
+      );
     }
   }
 
@@ -50,16 +76,52 @@ class MainCubit extends Cubit<MainState> {
   }
 
   void findMe() async {
-    _currentUserPosition = await _geolocationService.getCurrentPositionAsync();
-    _mapController.move(_currentUserPosition, _currentZoom);
+    try {
+      final result = await _geolocationService.getCurrentPositionAsync();
+
+      if (result.data != null) {
+        var position = result.data!;
+
+        _userPosition = UserPosition(
+          currentPosition: LatLng(position.latitude, position.longitude),
+          heading: position.heading,
+        );
+        _mapController.move(_userPosition!.currentPosition, _currentZoom);
+      }
+      if (result.error == ErrorType.permissionDenied) {
+        emit(MainState.error(error: result.error!));
+      }
+      emit(
+        MainState.loaded(
+          options: MapOptions(
+            onPositionChanged: _onPositionChanged,
+            initialZoom: _currentZoom,
+            initialCenter: _currentMapCenter,
+          ),
+          mapController: _mapController,
+          trackingStatus: TrackingStatus.tracking,
+          userPosition: _userPosition,
+        ),
+      );
+    } catch (e, s) {
+      emit(
+        MainState.loaded(
+          options: MapOptions(
+            onPositionChanged: _onPositionChanged,
+            initialZoom: _currentZoom,
+            initialCenter: _currentMapCenter,
+          ),
+          mapController: _mapController,
+          trackingStatus: TrackingStatus.tracking,
+          userPosition: _userPosition,
+        ),
+      );
+    }
   }
 
   void zoomIn() {
     _currentZoom = _currentZoom + 0.6;
-    _mapController.move(
-      _currentMapCenter,
-      _currentZoom,
-    );
+    _mapController.move(_currentMapCenter, _currentZoom);
   }
 
   void zoomOut() {
@@ -67,19 +129,94 @@ class MainCubit extends Cubit<MainState> {
     _mapController.move(_currentMapCenter, _currentZoom);
   }
 
-  void startTracking() {
-    
+  void tracking() {
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.tracking,
+        userPosition: _userPosition,
+      ),
+    );
   }
 
   void pauseTracking() {
-    // emit(MainStatePause());
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.pause,
+        userPosition: _userPosition,
+      ),
+    );
   }
 
   void finishTracking() {
-    // emit(MainStateFinish());
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.finish,
+        userPosition: _userPosition,
+      ),
+    );
   }
 
-  void saveTrack() {}
+  void saveTrack() {
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.rest,
+        userPosition: _userPosition,
+      ),
+    );
+  }
 
-  void deleteTrack() {}
+  void deleteTrack() {
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.rest,
+        userPosition: _userPosition,
+      ),
+    );
+  }
+
+  void openAppSettings() async {
+    await _geolocationService.openAppSettings();
+    emit(
+      MainState.loaded(
+        options: MapOptions(
+          onPositionChanged: _onPositionChanged,
+          initialZoom: _currentZoom,
+          initialCenter: _currentMapCenter,
+        ),
+        mapController: _mapController,
+        trackingStatus: TrackingStatus.rest,
+        userPosition: _userPosition,
+      ),
+    );
+  }
 }

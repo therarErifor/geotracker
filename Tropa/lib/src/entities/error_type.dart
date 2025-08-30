@@ -1,0 +1,1 @@
+enum ErrorType { locationServicesDisabled, permissionDenied }

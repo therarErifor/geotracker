@@ -55,14 +55,12 @@ extension MainStatePatterns on MainState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Init value)?  init,TResult Function( _Loaded value)?  loaded,TResult Function( _Tracking value)?  tracking,TResult Function( _Finish value)?  finish,TResult Function( _Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Init value)?  init,TResult Function( _Loaded value)?  loaded,TResult Function( _Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init(_that);case _Loaded() when loaded != null:
-return loaded(_that);case _Tracking() when tracking != null:
-return tracking(_that);case _Finish() when finish != null:
-return finish(_that);case _Error() when error != null:
+return loaded(_that);case _Error() when error != null:
 return error(_that);case _:
   return orElse();
 
@@ -81,14 +79,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Init value)  init,required TResult Function( _Loaded value)  loaded,required TResult Function( _Tracking value)  tracking,required TResult Function( _Finish value)  finish,required TResult Function( _Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Init value)  init,required TResult Function( _Loaded value)  loaded,required TResult Function( _Error value)  error,}){
 final _that = this;
 switch (_that) {
 case _Init():
 return init(_that);case _Loaded():
-return loaded(_that);case _Tracking():
-return tracking(_that);case _Finish():
-return finish(_that);case _Error():
+return loaded(_that);case _Error():
 return error(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -106,14 +102,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Init value)?  init,TResult? Function( _Loaded value)?  loaded,TResult? Function( _Tracking value)?  tracking,TResult? Function( _Finish value)?  finish,TResult? Function( _Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Init value)?  init,TResult? Function( _Loaded value)?  loaded,TResult? Function( _Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init(_that);case _Loaded() when loaded != null:
-return loaded(_that);case _Tracking() when tracking != null:
-return tracking(_that);case _Finish() when finish != null:
-return finish(_that);case _Error() when error != null:
+return loaded(_that);case _Error() when error != null:
 return error(_that);case _:
   return null;
 
@@ -131,14 +125,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  init,TResult Function( MapOptions options,  MapController mapController)?  loaded,TResult Function()?  tracking,TResult Function()?  finish,TResult Function()?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  init,TResult Function( MapOptions options,  MapController mapController,  TrackingStatus trackingStatus,  UserPosition? userPosition)?  loaded,TResult Function( Object error)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init();case _Loaded() when loaded != null:
-return loaded(_that.options,_that.mapController);case _Tracking() when tracking != null:
-return tracking();case _Finish() when finish != null:
-return finish();case _Error() when error != null:
-return error();case _:
+return loaded(_that.options,_that.mapController,_that.trackingStatus,_that.userPosition);case _Error() when error != null:
+return error(_that.error);case _:
   return orElse();
 
 }
@@ -156,14 +148,12 @@ return error();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  init,required TResult Function( MapOptions options,  MapController mapController)  loaded,required TResult Function()  tracking,required TResult Function()  finish,required TResult Function()  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  init,required TResult Function( MapOptions options,  MapController mapController,  TrackingStatus trackingStatus,  UserPosition? userPosition)  loaded,required TResult Function( Object error)  error,}) {final _that = this;
 switch (_that) {
 case _Init():
 return init();case _Loaded():
-return loaded(_that.options,_that.mapController);case _Tracking():
-return tracking();case _Finish():
-return finish();case _Error():
-return error();case _:
+return loaded(_that.options,_that.mapController,_that.trackingStatus,_that.userPosition);case _Error():
+return error(_that.error);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -180,14 +170,12 @@ return error();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  init,TResult? Function( MapOptions options,  MapController mapController)?  loaded,TResult? Function()?  tracking,TResult? Function()?  finish,TResult? Function()?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  init,TResult? Function( MapOptions options,  MapController mapController,  TrackingStatus trackingStatus,  UserPosition? userPosition)?  loaded,TResult? Function( Object error)?  error,}) {final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init();case _Loaded() when loaded != null:
-return loaded(_that.options,_that.mapController);case _Tracking() when tracking != null:
-return tracking();case _Finish() when finish != null:
-return finish();case _Error() when error != null:
-return error();case _:
+return loaded(_that.options,_that.mapController,_that.trackingStatus,_that.userPosition);case _Error() when error != null:
+return error(_that.error);case _:
   return null;
 
 }
@@ -231,11 +219,13 @@ String toString() {
 
 
 class _Loaded implements MainState {
-  const _Loaded({required this.options, required this.mapController});
+  const _Loaded({required this.options, required this.mapController, required this.trackingStatus, required this.userPosition});
   
 
  final  MapOptions options;
  final  MapController mapController;
+ final  TrackingStatus trackingStatus;
+ final  UserPosition? userPosition;
 
 /// Create a copy of MainState
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +237,16 @@ _$LoadedCopyWith<_Loaded> get copyWith => __$LoadedCopyWithImpl<_Loaded>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Loaded&&(identical(other.options, options) || other.options == options)&&(identical(other.mapController, mapController) || other.mapController == mapController));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Loaded&&(identical(other.options, options) || other.options == options)&&(identical(other.mapController, mapController) || other.mapController == mapController)&&(identical(other.trackingStatus, trackingStatus) || other.trackingStatus == trackingStatus)&&(identical(other.userPosition, userPosition) || other.userPosition == userPosition));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,options,mapController);
+int get hashCode => Object.hash(runtimeType,options,mapController,trackingStatus,userPosition);
 
 @override
 String toString() {
-  return 'MainState.loaded(options: $options, mapController: $mapController)';
+  return 'MainState.loaded(options: $options, mapController: $mapController, trackingStatus: $trackingStatus, userPosition: $userPosition)';
 }
 
 
@@ -267,7 +257,7 @@ abstract mixin class _$LoadedCopyWith<$Res> implements $MainStateCopyWith<$Res> 
   factory _$LoadedCopyWith(_Loaded value, $Res Function(_Loaded) _then) = __$LoadedCopyWithImpl;
 @useResult
 $Res call({
- MapOptions options, MapController mapController
+ MapOptions options, MapController mapController, TrackingStatus trackingStatus, UserPosition? userPosition
 });
 
 
@@ -284,11 +274,13 @@ class __$LoadedCopyWithImpl<$Res>
 
 /// Create a copy of MainState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? options = null,Object? mapController = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? options = null,Object? mapController = null,Object? trackingStatus = null,Object? userPosition = freezed,}) {
   return _then(_Loaded(
 options: null == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
 as MapOptions,mapController: null == mapController ? _self.mapController : mapController // ignore: cast_nullable_to_non_nullable
-as MapController,
+as MapController,trackingStatus: null == trackingStatus ? _self.trackingStatus : trackingStatus // ignore: cast_nullable_to_non_nullable
+as TrackingStatus,userPosition: freezed == userPosition ? _self.userPosition : userPosition // ignore: cast_nullable_to_non_nullable
+as UserPosition?,
   ));
 }
 
@@ -298,97 +290,66 @@ as MapController,
 /// @nodoc
 
 
-class _Tracking implements MainState {
-  const _Tracking();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Tracking);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'MainState.tracking()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class _Finish implements MainState {
-  const _Finish();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Finish);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'MainState.finish()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
 class _Error implements MainState {
-  const _Error();
+  const _Error({required this.error});
   
 
+ final  Object error;
 
-
+/// Create a copy of MainState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ErrorCopyWith<_Error> get copyWith => __$ErrorCopyWithImpl<_Error>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Error);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Error&&const DeepCollectionEquality().equals(other.error, error));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(error));
 
 @override
 String toString() {
-  return 'MainState.error()';
+  return 'MainState.error(error: $error)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class _$ErrorCopyWith<$Res> implements $MainStateCopyWith<$Res> {
+  factory _$ErrorCopyWith(_Error value, $Res Function(_Error) _then) = __$ErrorCopyWithImpl;
+@useResult
+$Res call({
+ Object error
+});
 
 
+
+
+}
+/// @nodoc
+class __$ErrorCopyWithImpl<$Res>
+    implements _$ErrorCopyWith<$Res> {
+  __$ErrorCopyWithImpl(this._self, this._then);
+
+  final _Error _self;
+  final $Res Function(_Error) _then;
+
+/// Create a copy of MainState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? error = null,}) {
+  return _then(_Error(
+error: null == error ? _self.error : error ,
+  ));
+}
+
+
+}
 
 // dart format on
