@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:geolocator/geolocator.dart';
 import 'package:geotracker/src/entities/error_type.dart';
 import 'package:injectable/injectable.dart';
@@ -29,17 +31,76 @@ class GeolocationService {
         permissionStatus == LocationPermission.always;
   }
 
+  /// Upgrades to Always when the platform supports it (needed for iOS background).
+  ///
+  /// Returns true when the app has at least while-in-use (Android FGS) or Always.
+  Future<bool> requestAlwaysPermission() async {
+    var permissionStatus = await Geolocator.checkPermission();
+    if (permissionStatus == LocationPermission.denied ||
+        permissionStatus == LocationPermission.deniedForever) {
+      permissionStatus = await Geolocator.requestPermission();
+    }
+    if (permissionStatus == LocationPermission.whileInUse) {
+      // Second request can present the Always upgrade dialog on iOS.
+      permissionStatus = await Geolocator.requestPermission();
+    }
+    return permissionStatus == LocationPermission.whileInUse ||
+        permissionStatus == LocationPermission.always;
+  }
+
   Future<void> openAppSettings() async {
     await Geolocator.openAppSettings();
   }
 
-  /// Foreground location updates. Caller must ensure permissions first.
+  /// Foreground map updates (no FGS / background mode).
   Stream<Position> watchPosition() {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 0,
     );
     return Geolocator.getPositionStream(locationSettings: locationSettings);
+  }
+
+  /// Location stream for an active recording session (Android FGS + iOS background).
+  Stream<Position> watchRecordingPosition() {
+    return Geolocator.getPositionStream(
+      locationSettings: _recordingLocationSettings(),
+    );
+  }
+
+  LocationSettings _recordingLocationSettings() {
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+        intervalDuration: const Duration(seconds: 1),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'Geotracker',
+          notificationText: 'Идёт запись маршрута',
+          notificationChannelName: 'Запись маршрута',
+          notificationIcon: AndroidResource(
+            name: 'ic_launcher',
+            defType: 'mipmap',
+          ),
+          setOngoing: true,
+          enableWakeLock: true,
+        ),
+      );
+    }
+    if (Platform.isIOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+        activityType: ActivityType.fitness,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: true,
+      );
+    }
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    );
   }
 
   Future<RequestResult<bool>> _requestPermissionsAndEnableServiceAsync() async {

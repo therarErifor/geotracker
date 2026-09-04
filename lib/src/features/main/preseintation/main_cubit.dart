@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map/flutter_map.dart' hide Marker;
 import 'package:geotracker/src/data/repositories/track_repository.dart';
+import 'package:geotracker/src/domain/marker.dart';
+import 'package:geotracker/src/domain/stop_detection.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_calculations.dart';
 import 'package:geotracker/src/domain/track_point.dart';
@@ -47,12 +49,14 @@ class MainCubit extends Cubit<MainState> {
   UserPosition? _userPosition;
   TrackingStatus _trackingStatus = TrackingStatus.rest;
   List<TrackPoint> _recordingPoints = const [];
+  List<Marker> _trackMarkers = const [];
   double _distanceMeters = 0;
   Duration _elapsedTime = Duration.zero;
   double? _currentSpeedKmh;
   double _averageSpeedKmh = 0;
   bool _cameraFollowEnabled = true;
   String? _saveError;
+  String? _sessionInterruptedMessage;
   StreamSubscription<RecordingSnapshot>? _recordingSubscription;
   Timer? _elapsedTimer;
 
@@ -66,6 +70,7 @@ class MainCubit extends Cubit<MainState> {
       var result = await _geolocationService.getCurrentPositionAsync();
       if (result.error == ErrorType.permissionDenied) {
         emit(MainState.error(error: result.error!));
+        return;
       }
       var position = result.data!;
       _currentMapCenter = LatLng(position.latitude, position.longitude);
@@ -73,15 +78,86 @@ class MainCubit extends Cubit<MainState> {
         currentPosition: _currentMapCenter,
         heading: position.heading,
       );
+      await _restoreSessionIfNeeded();
       _emitLoaded();
     } catch (e) {
       _currentMapCenter = LatLng(58.021688, 56.227984);
+      await _restoreSessionIfNeeded();
       _emitLoaded(initialZoom: _currentZoom - 14);
     }
   }
 
-  void _onRecordingSnapshot(RecordingSnapshot snapshot) {
+  Future<void> _restoreSessionIfNeeded() async {
+    final live = _trackRecordingService.currentSnapshot;
+    if (live.status != RecordingStatus.idle) {
+      _applyRestoredSnapshot(live);
+      return;
+    }
+
+    final draft = await _trackRepository.getActiveDraft();
+    if (draft == null) {
+      return;
+    }
+
+    if (draft.track.points.isEmpty) {
+      await _trackRepository.discardDraft(draft.track.id);
+      _sessionInterruptedMessage =
+          'Приложение было принудительно остановлено, и записать маршрут не удалось.';
+      return;
+    }
+
+    await _trackRecordingService.restoreFromDraft(draft);
+    _applyRestoredSnapshot(_trackRecordingService.currentSnapshot);
+  }
+
+  void _applyRestoredSnapshot(RecordingSnapshot snapshot) {
     _recordingPoints = snapshot.points;
+    _trackMarkers = snapshot.markers;
+    _elapsedTime = snapshot.elapsedTime;
+    _distanceMeters = TrackCalculations.totalDistanceMeters(snapshot.points);
+
+    _trackingStatus = switch (snapshot.status) {
+      RecordingStatus.recording => TrackingStatus.tracking,
+      RecordingStatus.paused => TrackingStatus.pause,
+      RecordingStatus.finished => TrackingStatus.finish,
+      RecordingStatus.idle => TrackingStatus.rest,
+    };
+
+    final latest = snapshot.latestPosition ?? snapshot.lastAcceptedPoint;
+    if (latest != null) {
+      _userPosition = UserPosition(
+        currentPosition: LatLng(latest.latitude, latest.longitude),
+        heading: _userPosition?.heading ?? 0,
+        speed: latest.speed,
+      );
+      _currentMapCenter = _userPosition!.currentPosition;
+      _currentSpeedKmh = latest.speed != null
+          ? TrackFormatters.mpsToKmh(latest.speed!)
+          : null;
+    }
+
+    final avgMps = TrackCalculations.averageSpeedMps(
+      _distanceMeters,
+      _elapsedTime,
+    );
+    _averageSpeedKmh = TrackFormatters.mpsToKmh(avgMps);
+
+    if (_trackingStatus == TrackingStatus.tracking) {
+      _cameraFollowEnabled = true;
+      _startElapsedTimer();
+    } else {
+      _stopElapsedTimer();
+    }
+  }
+
+  void _onRecordingSnapshot(RecordingSnapshot snapshot) {
+    if (_trackingStatus == TrackingStatus.rest &&
+        snapshot.status == RecordingStatus.idle) {
+      return;
+    }
+
+    _recordingPoints = snapshot.points;
+    _trackMarkers = snapshot.markers;
     _elapsedTime = snapshot.elapsedTime;
     _distanceMeters = TrackCalculations.totalDistanceMeters(snapshot.points);
 
@@ -172,16 +248,16 @@ class MainCubit extends Cubit<MainState> {
     _emitLoaded();
   }
 
-  void pauseTracking() {
-    _trackRecordingService.pause();
+  Future<void> pauseTracking() async {
+    await _trackRecordingService.pause();
     _trackingStatus = TrackingStatus.pause;
     _elapsedTime = _trackRecordingService.currentSnapshot.elapsedTime;
     _stopElapsedTimer();
     _emitLoaded();
   }
 
-  void finishTracking() {
-    _trackRecordingService.finish();
+  Future<void> finishTracking() async {
+    await _trackRecordingService.finish();
     _trackingStatus = TrackingStatus.finish;
     _elapsedTime = _trackRecordingService.currentSnapshot.elapsedTime;
     _stopElapsedTimer();
@@ -191,7 +267,8 @@ class MainCubit extends Cubit<MainState> {
   Future<void> saveTrack() async {
     final snapshot = _trackRecordingService.currentSnapshot;
     final startedAt = snapshot.startedAt;
-    if (startedAt == null || snapshot.points.isEmpty) {
+    final sessionId = snapshot.sessionId;
+    if (startedAt == null || sessionId == null || snapshot.points.isEmpty) {
       _saveError = 'Недостаточно данных для сохранения маршрута';
       _emitLoaded();
       return;
@@ -199,14 +276,23 @@ class MainCubit extends Cubit<MainState> {
 
     final duration = snapshot.elapsedTime;
     final distance = TrackCalculations.totalDistanceMeters(snapshot.points);
+    final stops = const StopDetection().detect(
+      points: snapshot.points,
+      pauseIntervals: snapshot.pauseIntervals,
+    );
+    final stoppedDuration = StopDetection.totalDuration(stops);
+    var movingDuration = duration - stoppedDuration;
+    if (movingDuration.isNegative) {
+      movingDuration = Duration.zero;
+    }
     final track = Track(
-      id: _uuid.v4(),
+      id: sessionId,
       name: TrackFormatters.defaultTrackName(startedAt),
       startedAt: startedAt,
       finishedAt: snapshot.finishedAt ?? DateTime.now(),
       duration: duration,
-      movingDuration: duration,
-      stoppedDuration: Duration.zero,
+      movingDuration: movingDuration,
+      stoppedDuration: stoppedDuration,
       distanceMeters: distance,
       averageSpeedMps: TrackCalculations.averageSpeedMps(distance, duration),
       maxSpeedMps: TrackCalculations.maxSpeedMps(snapshot.points),
@@ -214,11 +300,13 @@ class MainCubit extends Cubit<MainState> {
         snapshot.points,
       ),
       points: List.unmodifiable(snapshot.points),
+      stops: stops,
+      markers: List.unmodifiable(snapshot.markers),
     );
 
     try {
-      await _trackRepository.save(track);
-      _trackRecordingService.reset();
+      await _trackRepository.finalizeTrack(track);
+      await _trackRecordingService.reset();
       _resetRecordingUiState();
       _emitLoaded();
     } catch (error) {
@@ -235,8 +323,61 @@ class MainCubit extends Cubit<MainState> {
     _emitLoaded();
   }
 
-  void deleteTrack() {
-    _trackRecordingService.reset();
+  void clearSessionInterruptedMessage() {
+    if (_sessionInterruptedMessage == null) {
+      return;
+    }
+    _sessionInterruptedMessage = null;
+    _emitLoaded();
+  }
+
+  bool get canPlaceMarker =>
+      _trackingStatus == TrackingStatus.tracking ||
+      _trackingStatus == TrackingStatus.pause;
+
+  String? addMarker({
+    required double latitude,
+    required double longitude,
+    required String title,
+    required String description,
+  }) {
+    if (!canPlaceMarker) {
+      return 'Маркер можно поставить только во время записи';
+    }
+    final trimmedTitle = title.trim();
+    final trimmedDescription = description.trim();
+    if (trimmedTitle.isEmpty || trimmedDescription.isEmpty) {
+      return 'Нужны название и описание';
+    }
+    unawaited(
+      _trackRecordingService.addMarker(
+        Marker(
+          id: _uuid.v4(),
+          latitude: latitude,
+          longitude: longitude,
+          timestamp: DateTime.now(),
+          title: trimmedTitle,
+          description: trimmedDescription,
+        ),
+      ),
+    );
+    return null;
+  }
+
+  LatLng? currentMarkerPosition() {
+    final latest = _trackRecordingService.currentSnapshot.latestPosition;
+    if (latest != null) {
+      return LatLng(latest.latitude, latest.longitude);
+    }
+    final last = _trackRecordingService.currentSnapshot.lastAcceptedPoint;
+    if (last != null) {
+      return LatLng(last.latitude, last.longitude);
+    }
+    return _userPosition?.currentPosition;
+  }
+
+  Future<void> deleteTrack() async {
+    await _trackRecordingService.reset(discardDraft: true);
     _resetRecordingUiState();
     _emitLoaded();
   }
@@ -248,6 +389,7 @@ class MainCubit extends Cubit<MainState> {
 
   void _resetRecordingUiState() {
     _recordingPoints = const [];
+    _trackMarkers = const [];
     _distanceMeters = 0;
     _elapsedTime = Duration.zero;
     _currentSpeedKmh = null;
@@ -307,7 +449,9 @@ class MainCubit extends Cubit<MainState> {
         showRecenterButton:
             _trackingStatus == TrackingStatus.tracking &&
             !_cameraFollowEnabled,
+        trackMarkers: _trackMarkers,
         saveError: _saveError,
+        sessionInterruptedMessage: _sessionInterruptedMessage,
       ),
     );
   }

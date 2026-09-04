@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geotracker/src/domain/marker.dart' as domain;
+import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -15,9 +17,12 @@ class Map extends StatelessWidget {
     required this.initialZoom,
     this.userPosition,
     this.recordingPoints = const [],
+    this.stops = const [],
+    this.trackMarkers = const [],
     this.showStartEndMarkers = false,
     this.onCameraChanged,
     this.onMapReady,
+    this.onTap,
   });
 
   final MapController controller;
@@ -25,9 +30,12 @@ class Map extends StatelessWidget {
   final double initialZoom;
   final UserPosition? userPosition;
   final List<TrackPoint> recordingPoints;
+  final List<Stop> stops;
+  final List<domain.Marker> trackMarkers;
   final bool showStartEndMarkers;
   final void Function(MapCamera camera, bool hasGesture)? onCameraChanged;
   final VoidCallback? onMapReady;
+  final void Function(LatLng point)? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +49,9 @@ class Map extends StatelessWidget {
         initialCenter: initialCenter,
         initialZoom: initialZoom,
         onMapReady: onMapReady,
+        onTap: onTap == null
+            ? null
+            : (tapPosition, point) => onTap!(point),
         onPositionChanged: (camera, hasGesture) {
           onCameraChanged?.call(camera, hasGesture);
         },
@@ -74,6 +85,35 @@ class Map extends StatelessWidget {
                   width: 36,
                   height: 36,
                   child: const Icon(Icons.sports_score, color: Colors.red),
+                ),
+            ],
+          ),
+
+        if (stops.isNotEmpty)
+          MarkerLayer(
+            markers: [
+              for (final stop in stops)
+                Marker(
+                  point: LatLng(stop.latitude, stop.longitude),
+                  width: 32,
+                  height: 32,
+                  child: const Icon(Icons.pause_circle, color: Colors.orange),
+                ),
+            ],
+          ),
+
+        if (trackMarkers.isNotEmpty)
+          MarkerLayer(
+            markers: [
+              for (final marker in trackMarkers)
+                Marker(
+                  point: LatLng(marker.latitude, marker.longitude),
+                  width: 36,
+                  height: 36,
+                  child: Tooltip(
+                    message: marker.title,
+                    child: const Icon(Icons.place, color: Colors.deepPurple),
+                  ),
                 ),
             ],
           ),

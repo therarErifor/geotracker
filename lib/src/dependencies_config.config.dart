@@ -25,6 +25,8 @@ import 'package:geotracker/src/features/history/presentation/history_cubit.dart'
     as _i1024;
 import 'package:geotracker/src/features/main/preseintation/main_cubit.dart'
     as _i17;
+import 'package:geotracker/src/features/replay/presentation/replay_cubit.dart'
+    as _i646;
 import 'package:geotracker/src/services/geolocation_service.dart' as _i310;
 import 'package:geotracker/src/services/track_recording_service.dart' as _i129;
 import 'package:get_it/get_it.dart' as _i174;
@@ -41,9 +43,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i310.GeolocationService>(() => _i310.GeolocationService());
     gh.lazySingleton<_i945.TrackMapper>(() => dataModule.trackMapper());
     gh.lazySingleton<_i120.AppDatabase>(() => _i120.AppDatabase());
-    gh.lazySingleton<_i129.TrackRecordingService>(
-      () => _i129.TrackRecordingService(gh<_i310.GeolocationService>()),
-    );
     gh.lazySingleton<_i1013.LocalTrackDataSource>(
       () => _i1013.LocalTrackDataSource(
         gh<_i120.AppDatabase>(),
@@ -53,10 +52,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i873.TrackRepository>(
       () => _i901.TrackRepositoryImpl(gh<_i1013.LocalTrackDataSource>()),
     );
-    gh.factory<_i17.MainCubit>(
-      () => _i17.MainCubit(
+    gh.lazySingleton<_i129.TrackRecordingService>(
+      () => _i129.TrackRecordingService(
         gh<_i310.GeolocationService>(),
-        gh<_i129.TrackRecordingService>(),
         gh<_i873.TrackRepository>(),
       ),
     );
@@ -65,6 +63,16 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i1024.HistoryCubit>(
       () => _i1024.HistoryCubit(gh<_i873.TrackRepository>()),
+    );
+    gh.factory<_i646.ReplayCubit>(
+      () => _i646.ReplayCubit(gh<_i873.TrackRepository>()),
+    );
+    gh.factory<_i17.MainCubit>(
+      () => _i17.MainCubit(
+        gh<_i310.GeolocationService>(),
+        gh<_i129.TrackRecordingService>(),
+        gh<_i873.TrackRepository>(),
+      ),
     );
     return this;
   }

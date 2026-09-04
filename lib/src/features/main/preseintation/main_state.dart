@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:geotracker/src/domain/marker.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -22,7 +23,9 @@ abstract class MainState with _$MainState {
     double? currentSpeedKmh,
     @Default(0.0) double averageSpeedKmh,
     @Default(false) bool showRecenterButton,
+    @Default(<Marker>[]) List<Marker> trackMarkers,
     String? saveError,
+    String? sessionInterruptedMessage,
   }) = _Loaded;
 
   const factory MainState.error({required Object error}) = _Error;

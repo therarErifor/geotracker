@@ -23,4 +23,8 @@ class DetailsCubit extends Cubit<DetailsState> {
       emit(DetailsState.error(error: error));
     }
   }
+
+  Future<void> delete(String trackId) async {
+    await _trackRepository.delete(trackId);
+  }
 }

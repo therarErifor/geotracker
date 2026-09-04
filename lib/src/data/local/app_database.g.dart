@@ -132,6 +132,28 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
         requiredDuringInsert: false,
         defaultValue: const Constant(0),
       );
+  static const VerificationMeta _recordingStatusMeta = const VerificationMeta(
+    'recordingStatus',
+  );
+  @override
+  late final GeneratedColumn<String> recordingStatus = GeneratedColumn<String>(
+    'recording_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pauseIntervalsJsonMeta =
+      const VerificationMeta('pauseIntervalsJson');
+  @override
+  late final GeneratedColumn<String> pauseIntervalsJson =
+      GeneratedColumn<String>(
+        'pause_intervals_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -145,6 +167,8 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
     averageSpeedMps,
     maxSpeedMps,
     elevationGainMeters,
+    recordingStatus,
+    pauseIntervalsJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -245,6 +269,24 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
         ),
       );
     }
+    if (data.containsKey('recording_status')) {
+      context.handle(
+        _recordingStatusMeta,
+        recordingStatus.isAcceptableOrUnknown(
+          data['recording_status']!,
+          _recordingStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pause_intervals_json')) {
+      context.handle(
+        _pauseIntervalsJsonMeta,
+        pauseIntervalsJson.isAcceptableOrUnknown(
+          data['pause_intervals_json']!,
+          _pauseIntervalsJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -298,6 +340,14 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
         DriftSqlType.double,
         data['${effectivePrefix}elevation_gain_meters'],
       )!,
+      recordingStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recording_status'],
+      ),
+      pauseIntervalsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pause_intervals_json'],
+      ),
     );
   }
 
@@ -319,6 +369,12 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
   final double averageSpeedMps;
   final double maxSpeedMps;
   final double elevationGainMeters;
+
+  /// Draft session status: recording | paused | finished. Null when completed.
+  final String? recordingStatus;
+
+  /// JSON blob: pause intervals + open pause + totalPausedMs for kill recovery.
+  final String? pauseIntervalsJson;
   const TrackRow({
     required this.id,
     required this.name,
@@ -331,6 +387,8 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     required this.averageSpeedMps,
     required this.maxSpeedMps,
     required this.elevationGainMeters,
+    this.recordingStatus,
+    this.pauseIntervalsJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -348,6 +406,12 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     map['average_speed_mps'] = Variable<double>(averageSpeedMps);
     map['max_speed_mps'] = Variable<double>(maxSpeedMps);
     map['elevation_gain_meters'] = Variable<double>(elevationGainMeters);
+    if (!nullToAbsent || recordingStatus != null) {
+      map['recording_status'] = Variable<String>(recordingStatus);
+    }
+    if (!nullToAbsent || pauseIntervalsJson != null) {
+      map['pause_intervals_json'] = Variable<String>(pauseIntervalsJson);
+    }
     return map;
   }
 
@@ -366,6 +430,12 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       averageSpeedMps: Value(averageSpeedMps),
       maxSpeedMps: Value(maxSpeedMps),
       elevationGainMeters: Value(elevationGainMeters),
+      recordingStatus: recordingStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordingStatus),
+      pauseIntervalsJson: pauseIntervalsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pauseIntervalsJson),
     );
   }
 
@@ -388,6 +458,10 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       elevationGainMeters: serializer.fromJson<double>(
         json['elevationGainMeters'],
       ),
+      recordingStatus: serializer.fromJson<String?>(json['recordingStatus']),
+      pauseIntervalsJson: serializer.fromJson<String?>(
+        json['pauseIntervalsJson'],
+      ),
     );
   }
   @override
@@ -405,6 +479,8 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       'averageSpeedMps': serializer.toJson<double>(averageSpeedMps),
       'maxSpeedMps': serializer.toJson<double>(maxSpeedMps),
       'elevationGainMeters': serializer.toJson<double>(elevationGainMeters),
+      'recordingStatus': serializer.toJson<String?>(recordingStatus),
+      'pauseIntervalsJson': serializer.toJson<String?>(pauseIntervalsJson),
     };
   }
 
@@ -420,6 +496,8 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     double? averageSpeedMps,
     double? maxSpeedMps,
     double? elevationGainMeters,
+    Value<String?> recordingStatus = const Value.absent(),
+    Value<String?> pauseIntervalsJson = const Value.absent(),
   }) => TrackRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -432,6 +510,12 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     averageSpeedMps: averageSpeedMps ?? this.averageSpeedMps,
     maxSpeedMps: maxSpeedMps ?? this.maxSpeedMps,
     elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
+    recordingStatus: recordingStatus.present
+        ? recordingStatus.value
+        : this.recordingStatus,
+    pauseIntervalsJson: pauseIntervalsJson.present
+        ? pauseIntervalsJson.value
+        : this.pauseIntervalsJson,
   );
   TrackRow copyWithCompanion(TracksCompanion data) {
     return TrackRow(
@@ -462,6 +546,12 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       elevationGainMeters: data.elevationGainMeters.present
           ? data.elevationGainMeters.value
           : this.elevationGainMeters,
+      recordingStatus: data.recordingStatus.present
+          ? data.recordingStatus.value
+          : this.recordingStatus,
+      pauseIntervalsJson: data.pauseIntervalsJson.present
+          ? data.pauseIntervalsJson.value
+          : this.pauseIntervalsJson,
     );
   }
 
@@ -478,7 +568,9 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
           ..write('distanceMeters: $distanceMeters, ')
           ..write('averageSpeedMps: $averageSpeedMps, ')
           ..write('maxSpeedMps: $maxSpeedMps, ')
-          ..write('elevationGainMeters: $elevationGainMeters')
+          ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('recordingStatus: $recordingStatus, ')
+          ..write('pauseIntervalsJson: $pauseIntervalsJson')
           ..write(')'))
         .toString();
   }
@@ -496,6 +588,8 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     averageSpeedMps,
     maxSpeedMps,
     elevationGainMeters,
+    recordingStatus,
+    pauseIntervalsJson,
   );
   @override
   bool operator ==(Object other) =>
@@ -511,7 +605,9 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
           other.distanceMeters == this.distanceMeters &&
           other.averageSpeedMps == this.averageSpeedMps &&
           other.maxSpeedMps == this.maxSpeedMps &&
-          other.elevationGainMeters == this.elevationGainMeters);
+          other.elevationGainMeters == this.elevationGainMeters &&
+          other.recordingStatus == this.recordingStatus &&
+          other.pauseIntervalsJson == this.pauseIntervalsJson);
 }
 
 class TracksCompanion extends UpdateCompanion<TrackRow> {
@@ -526,6 +622,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
   final Value<double> averageSpeedMps;
   final Value<double> maxSpeedMps;
   final Value<double> elevationGainMeters;
+  final Value<String?> recordingStatus;
+  final Value<String?> pauseIntervalsJson;
   final Value<int> rowid;
   const TracksCompanion({
     this.id = const Value.absent(),
@@ -539,6 +637,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     this.averageSpeedMps = const Value.absent(),
     this.maxSpeedMps = const Value.absent(),
     this.elevationGainMeters = const Value.absent(),
+    this.recordingStatus = const Value.absent(),
+    this.pauseIntervalsJson = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TracksCompanion.insert({
@@ -553,6 +653,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     this.averageSpeedMps = const Value.absent(),
     this.maxSpeedMps = const Value.absent(),
     this.elevationGainMeters = const Value.absent(),
+    this.recordingStatus = const Value.absent(),
+    this.pauseIntervalsJson = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -569,6 +671,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     Expression<double>? averageSpeedMps,
     Expression<double>? maxSpeedMps,
     Expression<double>? elevationGainMeters,
+    Expression<String>? recordingStatus,
+    Expression<String>? pauseIntervalsJson,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -584,6 +688,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
       if (maxSpeedMps != null) 'max_speed_mps': maxSpeedMps,
       if (elevationGainMeters != null)
         'elevation_gain_meters': elevationGainMeters,
+      if (recordingStatus != null) 'recording_status': recordingStatus,
+      if (pauseIntervalsJson != null)
+        'pause_intervals_json': pauseIntervalsJson,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -600,6 +707,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     Value<double>? averageSpeedMps,
     Value<double>? maxSpeedMps,
     Value<double>? elevationGainMeters,
+    Value<String?>? recordingStatus,
+    Value<String?>? pauseIntervalsJson,
     Value<int>? rowid,
   }) {
     return TracksCompanion(
@@ -614,6 +723,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
       averageSpeedMps: averageSpeedMps ?? this.averageSpeedMps,
       maxSpeedMps: maxSpeedMps ?? this.maxSpeedMps,
       elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
+      recordingStatus: recordingStatus ?? this.recordingStatus,
+      pauseIntervalsJson: pauseIntervalsJson ?? this.pauseIntervalsJson,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -656,6 +767,12 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
         elevationGainMeters.value,
       );
     }
+    if (recordingStatus.present) {
+      map['recording_status'] = Variable<String>(recordingStatus.value);
+    }
+    if (pauseIntervalsJson.present) {
+      map['pause_intervals_json'] = Variable<String>(pauseIntervalsJson.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -676,6 +793,8 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
           ..write('averageSpeedMps: $averageSpeedMps, ')
           ..write('maxSpeedMps: $maxSpeedMps, ')
           ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('recordingStatus: $recordingStatus, ')
+          ..write('pauseIntervalsJson: $pauseIntervalsJson, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1238,16 +1357,954 @@ class TrackPointsCompanion extends UpdateCompanion<TrackPointRow> {
   }
 }
 
+class $TrackStopsTable extends TrackStops
+    with TableInfo<$TrackStopsTable, StopRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrackStopsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tracks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _finishedAtMeta = const VerificationMeta(
+    'finishedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> finishedAt = GeneratedColumn<DateTime>(
+    'finished_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    trackId,
+    startedAt,
+    finishedAt,
+    durationMs,
+    latitude,
+    longitude,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'track_stops';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StopRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('finished_at')) {
+      context.handle(
+        _finishedAtMeta,
+        finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_finishedAtMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMsMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StopRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StopRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_id'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      finishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}finished_at'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+    );
+  }
+
+  @override
+  $TrackStopsTable createAlias(String alias) {
+    return $TrackStopsTable(attachedDatabase, alias);
+  }
+}
+
+class StopRow extends DataClass implements Insertable<StopRow> {
+  final int id;
+  final String trackId;
+  final DateTime startedAt;
+  final DateTime finishedAt;
+  final int durationMs;
+  final double latitude;
+  final double longitude;
+  const StopRow({
+    required this.id,
+    required this.trackId,
+    required this.startedAt,
+    required this.finishedAt,
+    required this.durationMs,
+    required this.latitude,
+    required this.longitude,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['track_id'] = Variable<String>(trackId);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    map['finished_at'] = Variable<DateTime>(finishedAt);
+    map['duration_ms'] = Variable<int>(durationMs);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    return map;
+  }
+
+  TrackStopsCompanion toCompanion(bool nullToAbsent) {
+    return TrackStopsCompanion(
+      id: Value(id),
+      trackId: Value(trackId),
+      startedAt: Value(startedAt),
+      finishedAt: Value(finishedAt),
+      durationMs: Value(durationMs),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+    );
+  }
+
+  factory StopRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StopRow(
+      id: serializer.fromJson<int>(json['id']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      finishedAt: serializer.fromJson<DateTime>(json['finishedAt']),
+      durationMs: serializer.fromJson<int>(json['durationMs']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'trackId': serializer.toJson<String>(trackId),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'finishedAt': serializer.toJson<DateTime>(finishedAt),
+      'durationMs': serializer.toJson<int>(durationMs),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+    };
+  }
+
+  StopRow copyWith({
+    int? id,
+    String? trackId,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+    int? durationMs,
+    double? latitude,
+    double? longitude,
+  }) => StopRow(
+    id: id ?? this.id,
+    trackId: trackId ?? this.trackId,
+    startedAt: startedAt ?? this.startedAt,
+    finishedAt: finishedAt ?? this.finishedAt,
+    durationMs: durationMs ?? this.durationMs,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+  );
+  StopRow copyWithCompanion(TrackStopsCompanion data) {
+    return StopRow(
+      id: data.id.present ? data.id.value : this.id,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      finishedAt: data.finishedAt.present
+          ? data.finishedAt.value
+          : this.finishedAt,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StopRow(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    trackId,
+    startedAt,
+    finishedAt,
+    durationMs,
+    latitude,
+    longitude,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StopRow &&
+          other.id == this.id &&
+          other.trackId == this.trackId &&
+          other.startedAt == this.startedAt &&
+          other.finishedAt == this.finishedAt &&
+          other.durationMs == this.durationMs &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude);
+}
+
+class TrackStopsCompanion extends UpdateCompanion<StopRow> {
+  final Value<int> id;
+  final Value<String> trackId;
+  final Value<DateTime> startedAt;
+  final Value<DateTime> finishedAt;
+  final Value<int> durationMs;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  const TrackStopsCompanion({
+    this.id = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.finishedAt = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+  });
+  TrackStopsCompanion.insert({
+    this.id = const Value.absent(),
+    required String trackId,
+    required DateTime startedAt,
+    required DateTime finishedAt,
+    required int durationMs,
+    required double latitude,
+    required double longitude,
+  }) : trackId = Value(trackId),
+       startedAt = Value(startedAt),
+       finishedAt = Value(finishedAt),
+       durationMs = Value(durationMs),
+       latitude = Value(latitude),
+       longitude = Value(longitude);
+  static Insertable<StopRow> custom({
+    Expression<int>? id,
+    Expression<String>? trackId,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? finishedAt,
+    Expression<int>? durationMs,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trackId != null) 'track_id': trackId,
+      if (startedAt != null) 'started_at': startedAt,
+      if (finishedAt != null) 'finished_at': finishedAt,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+    });
+  }
+
+  TrackStopsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? trackId,
+    Value<DateTime>? startedAt,
+    Value<DateTime>? finishedAt,
+    Value<int>? durationMs,
+    Value<double>? latitude,
+    Value<double>? longitude,
+  }) {
+    return TrackStopsCompanion(
+      id: id ?? this.id,
+      trackId: trackId ?? this.trackId,
+      startedAt: startedAt ?? this.startedAt,
+      finishedAt: finishedAt ?? this.finishedAt,
+      durationMs: durationMs ?? this.durationMs,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (finishedAt.present) {
+      map['finished_at'] = Variable<DateTime>(finishedAt.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackStopsCompanion(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TrackMarkersTable extends TrackMarkers
+    with TableInfo<$TrackMarkersTable, MarkerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrackMarkersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tracks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    trackId,
+    latitude,
+    longitude,
+    timestamp,
+    title,
+    description,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'track_markers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MarkerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MarkerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MarkerRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_id'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+    );
+  }
+
+  @override
+  $TrackMarkersTable createAlias(String alias) {
+    return $TrackMarkersTable(attachedDatabase, alias);
+  }
+}
+
+class MarkerRow extends DataClass implements Insertable<MarkerRow> {
+  final String id;
+  final String trackId;
+  final double latitude;
+  final double longitude;
+  final DateTime timestamp;
+  final String title;
+  final String description;
+  const MarkerRow({
+    required this.id,
+    required this.trackId,
+    required this.latitude,
+    required this.longitude,
+    required this.timestamp,
+    required this.title,
+    required this.description,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['track_id'] = Variable<String>(trackId);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['title'] = Variable<String>(title);
+    map['description'] = Variable<String>(description);
+    return map;
+  }
+
+  TrackMarkersCompanion toCompanion(bool nullToAbsent) {
+    return TrackMarkersCompanion(
+      id: Value(id),
+      trackId: Value(trackId),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      timestamp: Value(timestamp),
+      title: Value(title),
+      description: Value(description),
+    );
+  }
+
+  factory MarkerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MarkerRow(
+      id: serializer.fromJson<String>(json['id']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String>(json['description']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'trackId': serializer.toJson<String>(trackId),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String>(description),
+    };
+  }
+
+  MarkerRow copyWith({
+    String? id,
+    String? trackId,
+    double? latitude,
+    double? longitude,
+    DateTime? timestamp,
+    String? title,
+    String? description,
+  }) => MarkerRow(
+    id: id ?? this.id,
+    trackId: trackId ?? this.trackId,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    timestamp: timestamp ?? this.timestamp,
+    title: title ?? this.title,
+    description: description ?? this.description,
+  );
+  MarkerRow copyWithCompanion(TrackMarkersCompanion data) {
+    return MarkerRow(
+      id: data.id.present ? data.id.value : this.id,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarkerRow(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('title: $title, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    trackId,
+    latitude,
+    longitude,
+    timestamp,
+    title,
+    description,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MarkerRow &&
+          other.id == this.id &&
+          other.trackId == this.trackId &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.timestamp == this.timestamp &&
+          other.title == this.title &&
+          other.description == this.description);
+}
+
+class TrackMarkersCompanion extends UpdateCompanion<MarkerRow> {
+  final Value<String> id;
+  final Value<String> trackId;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<DateTime> timestamp;
+  final Value<String> title;
+  final Value<String> description;
+  final Value<int> rowid;
+  const TrackMarkersCompanion({
+    this.id = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrackMarkersCompanion.insert({
+    required String id,
+    required String trackId,
+    required double latitude,
+    required double longitude,
+    required DateTime timestamp,
+    required String title,
+    required String description,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       trackId = Value(trackId),
+       latitude = Value(latitude),
+       longitude = Value(longitude),
+       timestamp = Value(timestamp),
+       title = Value(title),
+       description = Value(description);
+  static Insertable<MarkerRow> custom({
+    Expression<String>? id,
+    Expression<String>? trackId,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<DateTime>? timestamp,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trackId != null) 'track_id': trackId,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrackMarkersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? trackId,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<DateTime>? timestamp,
+    Value<String>? title,
+    Value<String>? description,
+    Value<int>? rowid,
+  }) {
+    return TrackMarkersCompanion(
+      id: id ?? this.id,
+      trackId: trackId ?? this.trackId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      timestamp: timestamp ?? this.timestamp,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackMarkersCompanion(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TracksTable tracks = $TracksTable(this);
   late final $TrackPointsTable trackPoints = $TrackPointsTable(this);
+  late final $TrackStopsTable trackStops = $TrackStopsTable(this);
+  late final $TrackMarkersTable trackMarkers = $TrackMarkersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [tracks, trackPoints];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    tracks,
+    trackPoints,
+    trackStops,
+    trackMarkers,
+  ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
@@ -1256,6 +2313,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('track_points', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tracks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('track_stops', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tracks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('track_markers', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -1273,6 +2344,8 @@ typedef $$TracksTableCreateCompanionBuilder =
       Value<double> averageSpeedMps,
       Value<double> maxSpeedMps,
       Value<double> elevationGainMeters,
+      Value<String?> recordingStatus,
+      Value<String?> pauseIntervalsJson,
       Value<int> rowid,
     });
 typedef $$TracksTableUpdateCompanionBuilder =
@@ -1288,6 +2361,8 @@ typedef $$TracksTableUpdateCompanionBuilder =
       Value<double> averageSpeedMps,
       Value<double> maxSpeedMps,
       Value<double> elevationGainMeters,
+      Value<String?> recordingStatus,
+      Value<String?> pauseIntervalsJson,
       Value<int> rowid,
     });
 
@@ -1308,6 +2383,42 @@ final class $$TracksTableReferences
     ).filter((f) => f.trackId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_trackPointsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TrackStopsTable, List<StopRow>>
+  _trackStopsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.trackStops,
+    aliasName: 'tracks__id__track_stops__track_id',
+  );
+
+  $$TrackStopsTableProcessedTableManager get trackStopsRefs {
+    final manager = $$TrackStopsTableTableManager(
+      $_db,
+      $_db.trackStops,
+    ).filter((f) => f.trackId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_trackStopsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TrackMarkersTable, List<MarkerRow>>
+  _trackMarkersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.trackMarkers,
+    aliasName: 'tracks__id__track_markers__track_id',
+  );
+
+  $$TrackMarkersTableProcessedTableManager get trackMarkersRefs {
+    final manager = $$TrackMarkersTableTableManager(
+      $_db,
+      $_db.trackMarkers,
+    ).filter((f) => f.trackId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_trackMarkersRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1378,6 +2489,16 @@ class $$TracksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get recordingStatus => $composableBuilder(
+    column: $table.recordingStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pauseIntervalsJson => $composableBuilder(
+    column: $table.pauseIntervalsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> trackPointsRefs(
     Expression<bool> Function($$TrackPointsTableFilterComposer f) f,
   ) {
@@ -1394,6 +2515,56 @@ class $$TracksTableFilterComposer
           }) => $$TrackPointsTableFilterComposer(
             $db: $db,
             $table: $db.trackPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> trackStopsRefs(
+    Expression<bool> Function($$TrackStopsTableFilterComposer f) f,
+  ) {
+    final $$TrackStopsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.trackStops,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TrackStopsTableFilterComposer(
+            $db: $db,
+            $table: $db.trackStops,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> trackMarkersRefs(
+    Expression<bool> Function($$TrackMarkersTableFilterComposer f) f,
+  ) {
+    final $$TrackMarkersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.trackMarkers,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TrackMarkersTableFilterComposer(
+            $db: $db,
+            $table: $db.trackMarkers,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1467,6 +2638,16 @@ class $$TracksTableOrderingComposer
     column: $table.elevationGainMeters,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get recordingStatus => $composableBuilder(
+    column: $table.recordingStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pauseIntervalsJson => $composableBuilder(
+    column: $table.pauseIntervalsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TracksTableAnnotationComposer
@@ -1527,6 +2708,16 @@ class $$TracksTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get recordingStatus => $composableBuilder(
+    column: $table.recordingStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get pauseIntervalsJson => $composableBuilder(
+    column: $table.pauseIntervalsJson,
+    builder: (column) => column,
+  );
+
   Expression<T> trackPointsRefs<T extends Object>(
     Expression<T> Function($$TrackPointsTableAnnotationComposer a) f,
   ) {
@@ -1551,6 +2742,56 @@ class $$TracksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> trackStopsRefs<T extends Object>(
+    Expression<T> Function($$TrackStopsTableAnnotationComposer a) f,
+  ) {
+    final $$TrackStopsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.trackStops,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TrackStopsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.trackStops,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> trackMarkersRefs<T extends Object>(
+    Expression<T> Function($$TrackMarkersTableAnnotationComposer a) f,
+  ) {
+    final $$TrackMarkersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.trackMarkers,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TrackMarkersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.trackMarkers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TracksTableTableManager
@@ -1566,7 +2807,11 @@ class $$TracksTableTableManager
           $$TracksTableUpdateCompanionBuilder,
           (TrackRow, $$TracksTableReferences),
           TrackRow,
-          PrefetchHooks Function({bool trackPointsRefs})
+          PrefetchHooks Function({
+            bool trackPointsRefs,
+            bool trackStopsRefs,
+            bool trackMarkersRefs,
+          })
         > {
   $$TracksTableTableManager(_$AppDatabase db, $TracksTable table)
     : super(
@@ -1592,6 +2837,8 @@ class $$TracksTableTableManager
                 Value<double> averageSpeedMps = const Value.absent(),
                 Value<double> maxSpeedMps = const Value.absent(),
                 Value<double> elevationGainMeters = const Value.absent(),
+                Value<String?> recordingStatus = const Value.absent(),
+                Value<String?> pauseIntervalsJson = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TracksCompanion(
                 id: id,
@@ -1605,6 +2852,8 @@ class $$TracksTableTableManager
                 averageSpeedMps: averageSpeedMps,
                 maxSpeedMps: maxSpeedMps,
                 elevationGainMeters: elevationGainMeters,
+                recordingStatus: recordingStatus,
+                pauseIntervalsJson: pauseIntervalsJson,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1620,6 +2869,8 @@ class $$TracksTableTableManager
                 Value<double> averageSpeedMps = const Value.absent(),
                 Value<double> maxSpeedMps = const Value.absent(),
                 Value<double> elevationGainMeters = const Value.absent(),
+                Value<String?> recordingStatus = const Value.absent(),
+                Value<String?> pauseIntervalsJson = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TracksCompanion.insert(
                 id: id,
@@ -1633,6 +2884,8 @@ class $$TracksTableTableManager
                 averageSpeedMps: averageSpeedMps,
                 maxSpeedMps: maxSpeedMps,
                 elevationGainMeters: elevationGainMeters,
+                recordingStatus: recordingStatus,
+                pauseIntervalsJson: pauseIntervalsJson,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -1643,35 +2896,89 @@ class $$TracksTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({trackPointsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (trackPointsRefs) db.trackPoints],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (trackPointsRefs)
-                    await $_getPrefetchedData<
-                      TrackRow,
-                      $TracksTable,
-                      TrackPointRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$TracksTableReferences
-                          ._trackPointsRefsTable(db),
-                      managerFromTypedResult: (p0) => $$TracksTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).trackPointsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.trackId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({
+                trackPointsRefs = false,
+                trackStopsRefs = false,
+                trackMarkersRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (trackPointsRefs) db.trackPoints,
+                    if (trackStopsRefs) db.trackStops,
+                    if (trackMarkersRefs) db.trackMarkers,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (trackPointsRefs)
+                        await $_getPrefetchedData<
+                          TrackRow,
+                          $TracksTable,
+                          TrackPointRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TracksTableReferences
+                              ._trackPointsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TracksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).trackPointsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.trackId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (trackStopsRefs)
+                        await $_getPrefetchedData<
+                          TrackRow,
+                          $TracksTable,
+                          StopRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TracksTableReferences
+                              ._trackStopsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TracksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).trackStopsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.trackId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (trackMarkersRefs)
+                        await $_getPrefetchedData<
+                          TrackRow,
+                          $TracksTable,
+                          MarkerRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TracksTableReferences
+                              ._trackMarkersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TracksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).trackMarkersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.trackId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1688,7 +2995,11 @@ typedef $$TracksTableProcessedTableManager =
       $$TracksTableUpdateCompanionBuilder,
       (TrackRow, $$TracksTableReferences),
       TrackRow,
-      PrefetchHooks Function({bool trackPointsRefs})
+      PrefetchHooks Function({
+        bool trackPointsRefs,
+        bool trackStopsRefs,
+        bool trackMarkersRefs,
+      })
     >;
 typedef $$TrackPointsTableCreateCompanionBuilder =
     TrackPointsCompanion Function({
@@ -2079,6 +3390,716 @@ typedef $$TrackPointsTableProcessedTableManager =
       TrackPointRow,
       PrefetchHooks Function({bool trackId})
     >;
+typedef $$TrackStopsTableCreateCompanionBuilder =
+    TrackStopsCompanion Function({
+      Value<int> id,
+      required String trackId,
+      required DateTime startedAt,
+      required DateTime finishedAt,
+      required int durationMs,
+      required double latitude,
+      required double longitude,
+    });
+typedef $$TrackStopsTableUpdateCompanionBuilder =
+    TrackStopsCompanion Function({
+      Value<int> id,
+      Value<String> trackId,
+      Value<DateTime> startedAt,
+      Value<DateTime> finishedAt,
+      Value<int> durationMs,
+      Value<double> latitude,
+      Value<double> longitude,
+    });
+
+final class $$TrackStopsTableReferences
+    extends BaseReferences<_$AppDatabase, $TrackStopsTable, StopRow> {
+  $$TrackStopsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('track_stops__track_id__tracks__id');
+
+  $$TracksTableProcessedTableManager get trackId {
+    final $_column = $_itemColumn<String>('track_id')!;
+
+    final manager = $$TracksTableTableManager(
+      $_db,
+      $_db.tracks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_trackIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TrackStopsTableFilterComposer
+    extends Composer<_$AppDatabase, $TrackStopsTable> {
+  $$TrackStopsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TracksTableFilterComposer get trackId {
+    final $$TracksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableFilterComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackStopsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TrackStopsTable> {
+  $$TrackStopsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TracksTableOrderingComposer get trackId {
+    final $$TracksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackStopsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TrackStopsTable> {
+  $$TrackStopsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  $$TracksTableAnnotationComposer get trackId {
+    final $$TracksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackStopsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TrackStopsTable,
+          StopRow,
+          $$TrackStopsTableFilterComposer,
+          $$TrackStopsTableOrderingComposer,
+          $$TrackStopsTableAnnotationComposer,
+          $$TrackStopsTableCreateCompanionBuilder,
+          $$TrackStopsTableUpdateCompanionBuilder,
+          (StopRow, $$TrackStopsTableReferences),
+          StopRow,
+          PrefetchHooks Function({bool trackId})
+        > {
+  $$TrackStopsTableTableManager(_$AppDatabase db, $TrackStopsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrackStopsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrackStopsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrackStopsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> trackId = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime> finishedAt = const Value.absent(),
+                Value<int> durationMs = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+              }) => TrackStopsCompanion(
+                id: id,
+                trackId: trackId,
+                startedAt: startedAt,
+                finishedAt: finishedAt,
+                durationMs: durationMs,
+                latitude: latitude,
+                longitude: longitude,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String trackId,
+                required DateTime startedAt,
+                required DateTime finishedAt,
+                required int durationMs,
+                required double latitude,
+                required double longitude,
+              }) => TrackStopsCompanion.insert(
+                id: id,
+                trackId: trackId,
+                startedAt: startedAt,
+                finishedAt: finishedAt,
+                durationMs: durationMs,
+                latitude: latitude,
+                longitude: longitude,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TrackStopsTable, StopRow>(table),
+                  $$TrackStopsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({trackId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (trackId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.trackId,
+                                referencedTable: $$TrackStopsTableReferences
+                                    ._trackIdTable(db),
+                                referencedColumn: $$TrackStopsTableReferences
+                                    ._trackIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TrackStopsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TrackStopsTable,
+      StopRow,
+      $$TrackStopsTableFilterComposer,
+      $$TrackStopsTableOrderingComposer,
+      $$TrackStopsTableAnnotationComposer,
+      $$TrackStopsTableCreateCompanionBuilder,
+      $$TrackStopsTableUpdateCompanionBuilder,
+      (StopRow, $$TrackStopsTableReferences),
+      StopRow,
+      PrefetchHooks Function({bool trackId})
+    >;
+typedef $$TrackMarkersTableCreateCompanionBuilder =
+    TrackMarkersCompanion Function({
+      required String id,
+      required String trackId,
+      required double latitude,
+      required double longitude,
+      required DateTime timestamp,
+      required String title,
+      required String description,
+      Value<int> rowid,
+    });
+typedef $$TrackMarkersTableUpdateCompanionBuilder =
+    TrackMarkersCompanion Function({
+      Value<String> id,
+      Value<String> trackId,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<DateTime> timestamp,
+      Value<String> title,
+      Value<String> description,
+      Value<int> rowid,
+    });
+
+final class $$TrackMarkersTableReferences
+    extends BaseReferences<_$AppDatabase, $TrackMarkersTable, MarkerRow> {
+  $$TrackMarkersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('track_markers__track_id__tracks__id');
+
+  $$TracksTableProcessedTableManager get trackId {
+    final $_column = $_itemColumn<String>('track_id')!;
+
+    final manager = $$TracksTableTableManager(
+      $_db,
+      $_db.tracks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_trackIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TrackMarkersTableFilterComposer
+    extends Composer<_$AppDatabase, $TrackMarkersTable> {
+  $$TrackMarkersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TracksTableFilterComposer get trackId {
+    final $$TracksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableFilterComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackMarkersTableOrderingComposer
+    extends Composer<_$AppDatabase, $TrackMarkersTable> {
+  $$TrackMarkersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TracksTableOrderingComposer get trackId {
+    final $$TracksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackMarkersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TrackMarkersTable> {
+  $$TrackMarkersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  $$TracksTableAnnotationComposer get trackId {
+    final $$TracksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TrackMarkersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TrackMarkersTable,
+          MarkerRow,
+          $$TrackMarkersTableFilterComposer,
+          $$TrackMarkersTableOrderingComposer,
+          $$TrackMarkersTableAnnotationComposer,
+          $$TrackMarkersTableCreateCompanionBuilder,
+          $$TrackMarkersTableUpdateCompanionBuilder,
+          (MarkerRow, $$TrackMarkersTableReferences),
+          MarkerRow,
+          PrefetchHooks Function({bool trackId})
+        > {
+  $$TrackMarkersTableTableManager(_$AppDatabase db, $TrackMarkersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrackMarkersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrackMarkersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrackMarkersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> trackId = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrackMarkersCompanion(
+                id: id,
+                trackId: trackId,
+                latitude: latitude,
+                longitude: longitude,
+                timestamp: timestamp,
+                title: title,
+                description: description,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String trackId,
+                required double latitude,
+                required double longitude,
+                required DateTime timestamp,
+                required String title,
+                required String description,
+                Value<int> rowid = const Value.absent(),
+              }) => TrackMarkersCompanion.insert(
+                id: id,
+                trackId: trackId,
+                latitude: latitude,
+                longitude: longitude,
+                timestamp: timestamp,
+                title: title,
+                description: description,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TrackMarkersTable, MarkerRow>(table),
+                  $$TrackMarkersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({trackId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (trackId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.trackId,
+                                referencedTable: $$TrackMarkersTableReferences
+                                    ._trackIdTable(db),
+                                referencedColumn: $$TrackMarkersTableReferences
+                                    ._trackIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TrackMarkersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TrackMarkersTable,
+      MarkerRow,
+      $$TrackMarkersTableFilterComposer,
+      $$TrackMarkersTableOrderingComposer,
+      $$TrackMarkersTableAnnotationComposer,
+      $$TrackMarkersTableCreateCompanionBuilder,
+      $$TrackMarkersTableUpdateCompanionBuilder,
+      (MarkerRow, $$TrackMarkersTableReferences),
+      MarkerRow,
+      PrefetchHooks Function({bool trackId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2087,4 +4108,8 @@ class $AppDatabaseManager {
       $$TracksTableTableManager(_db, _db.tracks);
   $$TrackPointsTableTableManager get trackPoints =>
       $$TrackPointsTableTableManager(_db, _db.trackPoints);
+  $$TrackStopsTableTableManager get trackStops =>
+      $$TrackStopsTableTableManager(_db, _db.trackStops);
+  $$TrackMarkersTableTableManager get trackMarkers =>
+      $$TrackMarkersTableTableManager(_db, _db.trackMarkers);
 }

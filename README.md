@@ -33,5 +33,8 @@ dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
-iOS location requires `NSLocationWhenInUseUsageDescription` (already configured in
-`ios/Runner/Info.plist`). Background tracking is planned for a later MVP stage.
+iOS location requires `NSLocationWhenInUseUsageDescription` and Always usage
+strings (configured in `ios/Runner/Info.plist`) plus `UIBackgroundModes: location`.
+Android recording uses a location foreground service with a persistent notification
+(`minSdk` 29). Kill recovery restores an in-progress draft from local SQLite when
+possible.

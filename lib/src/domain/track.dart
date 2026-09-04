@@ -1,9 +1,10 @@
+import 'package:geotracker/src/domain/marker.dart';
+import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 
 /// A recorded route with aggregate stats and ordered GPS points.
 ///
 /// Domain-only: no Flutter or plugin types.
-/// [stops] and [markers] are reserved for later stages.
 class Track {
   const Track({
     required this.id,
@@ -18,6 +19,8 @@ class Track {
     this.averageSpeedMps = 0,
     this.maxSpeedMps = 0,
     this.elevationGainMeters = 0,
+    this.stops = const [],
+    this.markers = const [],
   });
 
   final String id;
@@ -41,4 +44,6 @@ class Track {
   final double elevationGainMeters;
 
   final List<TrackPoint> points;
+  final List<Stop> stops;
+  final List<Marker> markers;
 }

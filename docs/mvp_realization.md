@@ -18,30 +18,33 @@ Rules / skills / architecture: `.cursor/` (not `.continue/`).
 | Polyline | Live path on map | `PolylineLayer` in `Map` widget | Partial |
 | Pause / resume / finish | Real session control | `TrackRecordingService` wired to Cubit | Partial |
 | Realtime stats | distance, time, speeds, elevation | `LiveStatsOverlay` (distance, time, current/avg km/h) | Partial |
-| Domain models | Track, TrackPoint, Stop, Marker | `Track`, `TrackPoint` + calcs; UI still uses `UserPosition` | Partial |
+| Domain models | Track, TrackPoint, Stop, Marker | `Track`, `TrackPoint`, `Stop`, `Marker` + calcs | Partial |
 | GPS filtering | accuracy / distance / interval / outliers | `GpsFilter` in domain (+ unit tests) | Partial |
-| Stops | auto-detect from speed + duration | None | Missing |
-| Local persistence | TrackRepository → local DB/files | Drift + `TrackRepository` + local datasource | Partial |
+| Stops | auto-detect from speed + duration | `StopDetection` (pause, GPS speed, time gaps) | Done |
+| Local persistence | TrackRepository → local DB/files | Drift schema v2 + stops/markers tables | Partial |
 | History | track list + rename/delete | `features/history/` list, rename, delete | Partial |
-| Details | full track + stats on map | `features/details/` polyline, start/end, stats | Partial |
-| Replay | play/pause/seek/speed/camera | None | Missing |
-| Markers / photos | POI + optional photos | None | Missing |
+| Details | full track + stats on map | `features/details/` polyline, start/end, stats, Replay | Partial |
+| Replay | play/pause/seek/speed/camera | `features/replay/` | Partial |
+| Markers / photos | POI + optional photos | User markers on Live/Details/Replay; photos later | Partial |
 | Graphs | speed/elevation charts | None | Missing |
-| Background tracking | Android/iOS background location | Foreground permission only | Missing |
+| Background tracking | Android/iOS background location | FGS + iOS Always + draft kill recovery | Done |
 | GPX | import/export | None (Phase 3); planned as domain ↔ GPX mapper | Missing |
-| Architecture | presentation / domain / data | `lib/src/data/` + history/details features | Partial |
-| Tests | domain unit tests | domain + `track_mapper` | Partial |
+| Architecture | presentation / domain / data | `lib/src/data/` + history/details/replay | Partial |
+| Tests | domain unit tests | domain + mapper + stop/interpolation + draft persistence | Partial |
 
 ### What already works
 
 - Flutter app shell (`GeotrackerApp`), DI (`injectable` + `get_it`)
 - `MainScreen` + Cubit Freezed states (`init` / `loaded` / `error`)
-- `GeolocationService`: permissions, last/current position
+- `GeolocationService`: permissions, last/current position, recording stream (FGS / iOS background)
 - `flutter_map` OSM tiles + user heading marker
 - Tracking UI buttons wired to real recording session
-- Domain: `Track`, `TrackPoint`, `TrackCalculations`, `GpsFilter`, `SessionElapsed` (+ unit tests)
+- Domain: `Track`, `TrackPoint`, `Stop`, `Marker`, `TrackCalculations`, `GpsFilter`, `SessionElapsed` (+ unit tests)
 - Live: polyline, stats overlay, camera follow with recenter
 - Persistence: Drift SQLite, save from Live, History + Details
+- Replay: timeline, speeds 1x–50x, camera follow
+- Stops: domain detection on save; markers during recording
+- Background: Android FGS notification + iOS Always / `UIBackgroundModes`; draft checkpoint kill recovery
 - GPX import/export deferred to Stage 6
 
 ---
@@ -104,8 +107,8 @@ Keep Cubit + Freezed + injectable. Do not introduce BLoC events unless needed.
 ## Platform configuration checklist
 
 - [x] iOS `NSLocationWhenInUseUsageDescription` in `ios/Runner/Info.plist`
-- [x] Android `ACCESS_BACKGROUND_LOCATION` omitted until Stage 5
-- [ ] Stage 5: Android foreground service (`location`) + notification; iOS `UIBackgroundModes: location` + Always permission
+- [x] Android `ACCESS_BACKGROUND_LOCATION` omitted (FGS + notification used instead)
+- [x] Stage 5: Android foreground service (`location`) + notification; iOS `UIBackgroundModes: location` + Always permission
 - [ ] Stage 5+: battery/lifecycle / kill recovery on real devices
 
 ---
@@ -119,7 +122,7 @@ Keep Cubit + Freezed + injectable. Do not introduce BLoC events unless needed.
 - [x] Unit tests for domain math
 - [x] Dependencies refreshed in `pubspec.yaml` / lockfile
 - [x] Light rename: `TropaApp` → `GeotrackerApp`
-- [ ] `Stop`, `Marker` — when Stage 4 needs them
+- [x] `Stop`, `Marker` — Stage 4
 
 ### Stage 1 — GPS pipeline (foreground) — DONE (2026-09)
 
@@ -144,17 +147,17 @@ Keep Cubit + Freezed + injectable. Do not introduce BLoC events unless needed.
 - [x] Details screen: full polyline, start/end, stats
 - [ ] GPX import/export/share — Stage 6
 
-### Stage 4 — Replay + stops + markers — NEXT
+### Stage 4 — Replay + stops + markers — DONE (2026-09)
 
-- [ ] Replay timeline, speed (1x…50x), camera follow
-- [ ] Auto stops
-- [ ] User markers during recording
+- [x] Replay timeline, speed (1x…50x), camera follow
+- [x] Auto stops
+- [x] User markers during recording
 
-### Stage 5 — Background + hardening
+### Stage 5 — Background + hardening — DONE (2026-09)
 
-- [ ] Android foreground service / notification
-- [ ] iOS background location capabilities
-- [ ] Recovery after process kill where feasible
+- [x] Android foreground service / notification
+- [x] iOS background location capabilities
+- [x] Recovery after process kill where feasible (Drift draft checkpoint; empty draft → user message)
 
 ### Stage 6 — Expansion (Phase 3–4)
 

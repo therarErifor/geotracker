@@ -26,6 +26,14 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Geotracker app uses your location to show your position on the map and record your routes.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Geotracker app needs background location access to keep recording your route when the screen is locked or the app is in the background.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Geotracker app needs background location access to keep recording your route when the screen is locked or the app is in the background.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

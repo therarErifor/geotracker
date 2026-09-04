@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geotracker/src/dependencies_config.dart';
+import 'package:geotracker/src/domain/marker.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:geotracker/src/entities/error_type.dart';
 import 'package:geotracker/src/entities/tracking_status.dart';
@@ -22,21 +23,42 @@ class MainScreen extends StatelessWidget {
       body: SafeArea(
         child: BlocProvider<MainCubit>(
           create: (_) => container<MainCubit>(),
-          child: BlocListener<MainCubit, MainState>(
-            listenWhen: (previous, current) {
-              return _saveError(current) != null &&
-                  _saveError(current) != _saveError(previous);
-            },
-            listener: (context, state) {
-              final message = _saveError(state);
-              if (message == null) {
-                return;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message)),
-              );
-              context.read<MainCubit>().clearSaveError();
-            },
+          child: MultiBlocListener(
+            listeners: [
+              BlocListener<MainCubit, MainState>(
+                listenWhen: (previous, current) {
+                  return _saveError(current) != null &&
+                      _saveError(current) != _saveError(previous);
+                },
+                listener: (context, state) {
+                  final message = _saveError(state);
+                  if (message == null) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(message)),
+                  );
+                  context.read<MainCubit>().clearSaveError();
+                },
+              ),
+              BlocListener<MainCubit, MainState>(
+                listenWhen: (previous, current) {
+                  return _sessionInterruptedMessage(current) != null &&
+                      _sessionInterruptedMessage(current) !=
+                          _sessionInterruptedMessage(previous);
+                },
+                listener: (context, state) {
+                  final message = _sessionInterruptedMessage(state);
+                  if (message == null) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(message)),
+                  );
+                  context.read<MainCubit>().clearSessionInterruptedMessage();
+                },
+              ),
+            ],
             child: BlocBuilder<MainCubit, MainState>(builder: _buildBody),
           ),
         ),
@@ -47,6 +69,13 @@ class MainScreen extends StatelessWidget {
   static String? _saveError(MainState state) {
     return state.maybeMap(
       loaded: (loaded) => loaded.saveError,
+      orElse: () => null,
+    );
+  }
+
+  static String? _sessionInterruptedMessage(MainState state) {
+    return state.maybeMap(
+      loaded: (loaded) => loaded.sessionInterruptedMessage,
       orElse: () => null,
     );
   }
@@ -81,7 +110,9 @@ class MainScreen extends StatelessWidget {
         currentSpeedKmh,
         averageSpeedKmh,
         showRecenterButton,
+        trackMarkers,
         saveError,
+        sessionInterruptedMessage,
       ) =>
           _buildLoaded(
             context,
@@ -95,9 +126,71 @@ class MainScreen extends StatelessWidget {
             currentSpeedKmh: currentSpeedKmh,
             averageSpeedKmh: averageSpeedKmh,
             showRecenterButton: showRecenterButton,
+            trackMarkers: trackMarkers,
           ),
       orElse: () => const InitializationWidget(),
     );
+  }
+
+  Future<void> _promptAddMarker(
+    BuildContext context,
+    MainCubit cubit,
+    LatLng point,
+  ) async {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Новый маркер'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Название'),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Описание'),
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Сохранить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (submitted != true || !context.mounted) {
+      titleController.dispose();
+      descriptionController.dispose();
+      return;
+    }
+
+    final error = cubit.addMarker(
+      latitude: point.latitude,
+      longitude: point.longitude,
+      title: titleController.text,
+      description: descriptionController.text,
+    );
+    titleController.dispose();
+    descriptionController.dispose();
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 
   Widget _buildLoaded(
@@ -112,9 +205,12 @@ class MainScreen extends StatelessWidget {
     required double? currentSpeedKmh,
     required double averageSpeedKmh,
     required bool showRecenterButton,
+    required List<Marker> trackMarkers,
   }) {
     final cubit = context.read<MainCubit>();
     final showStats = trackingStatus != TrackingStatus.rest;
+    final canPlaceMarker = trackingStatus == TrackingStatus.tracking ||
+        trackingStatus == TrackingStatus.pause;
 
     return Stack(
       children: [
@@ -124,7 +220,11 @@ class MainScreen extends StatelessWidget {
           initialZoom: initialMapZoom,
           userPosition: userPosition,
           recordingPoints: recordingPoints,
+          trackMarkers: trackMarkers,
           onCameraChanged: cubit.onMapCameraChanged,
+          onTap: canPlaceMarker
+              ? (point) => _promptAddMarker(context, cubit, point)
+              : null,
         ),
         if (showStats)
           Align(
@@ -176,13 +276,38 @@ class MainScreen extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: TrackingButtons(
-              trackingStatus: trackingStatus,
-              tracking: cubit.tracking,
-              pauseTracking: cubit.pauseTracking,
-              finishTracking: cubit.finishTracking,
-              saveTrack: cubit.saveTrack,
-              deleteTrack: cubit.deleteTrack,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canPlaceMarker)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final position = cubit.currentMarkerPosition();
+                        if (position == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Нет текущих координат'),
+                            ),
+                          );
+                          return;
+                        }
+                        _promptAddMarker(context, cubit, position);
+                      },
+                      icon: const Icon(Icons.add_location_alt),
+                      label: const Text('Маркер'),
+                    ),
+                  ),
+                TrackingButtons(
+                  trackingStatus: trackingStatus,
+                  tracking: cubit.tracking,
+                  pauseTracking: cubit.pauseTracking,
+                  finishTracking: cubit.finishTracking,
+                  saveTrack: cubit.saveTrack,
+                  deleteTrack: cubit.deleteTrack,
+                ),
+              ],
             ),
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geotracker/src/dependencies_config.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_point.dart';
+import 'package:geotracker/src/features/replay/presentation/replay_page.dart';
 import 'package:geotracker/src/ui/formatters/track_formatters.dart';
 import 'package:geotracker/src/ui/widgets/widgets_export.dart';
 import 'package:latlong2/latlong.dart';
@@ -20,13 +21,15 @@ class DetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => container<DetailsCubit>()..load(trackId),
-      child: const _DetailsView(),
+      child: _DetailsView(trackId: trackId),
     );
   }
 }
 
 class _DetailsView extends StatefulWidget {
-  const _DetailsView();
+  const _DetailsView({required this.trackId});
+
+  final String trackId;
 
   @override
   State<_DetailsView> createState() => _DetailsViewState();
@@ -72,17 +75,38 @@ class _DetailsViewState extends State<_DetailsView> {
               buttonText: 'Назад',
               callback: () => Navigator.of(context).pop(),
             ),
-            loaded: (track) => _buildLoaded(track),
+            loaded: (track) => _buildLoaded(context, track),
           );
         },
       ),
     );
   }
 
-  Widget _buildLoaded(Track track) {
-    final center = track.points.isNotEmpty
-        ? LatLng(track.points.first.latitude, track.points.first.longitude)
-        : const LatLng(58.021688, 56.227984);
+  Widget _buildLoaded(BuildContext context, Track track) {
+    if (track.points.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'В этом маршруте нет точек. Его можно удалить.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _deleteTrack(context),
+              child: const Text('Удалить маршрут'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final center = LatLng(
+      track.points.first.latitude,
+      track.points.first.longitude,
+    );
 
     return Column(
       children: [
@@ -92,13 +116,31 @@ class _DetailsViewState extends State<_DetailsView> {
             initialCenter: center,
             initialZoom: 14,
             recordingPoints: track.points,
+            stops: track.stops,
+            trackMarkers: track.markers,
             showStartEndMarkers: true,
             onMapReady: () => _fitTrack(track.points),
           ),
         ),
-        _TrackStatsPanel(track: track),
+        _TrackStatsPanel(
+          track: track,
+          onReplay: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ReplayPage(trackId: widget.trackId),
+              ),
+            );
+          },
+        ),
       ],
     );
+  }
+
+  Future<void> _deleteTrack(BuildContext context) async {
+    await context.read<DetailsCubit>().delete(widget.trackId);
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _fitTrack(List<TrackPoint> points) {
@@ -134,9 +176,10 @@ class _DetailsViewState extends State<_DetailsView> {
 }
 
 class _TrackStatsPanel extends StatelessWidget {
-  const _TrackStatsPanel({required this.track});
+  const _TrackStatsPanel({required this.track, required this.onReplay});
 
   final Track track;
+  final VoidCallback onReplay;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +209,20 @@ class _TrackStatsPanel extends StatelessWidget {
                   value: TrackFormatters.formatDurationHms(track.duration),
                 ),
                 _Stat(
+                  label: 'В движении',
+                  value: TrackFormatters.formatDurationHms(track.movingDuration),
+                ),
+                _Stat(
+                  label: 'Остановки',
+                  value: TrackFormatters.formatDurationHms(
+                    track.stoppedDuration,
+                  ),
+                ),
+                _Stat(
+                  label: 'Остановок',
+                  value: '${track.stops.length}',
+                ),
+                _Stat(
                   label: 'Средняя',
                   value: TrackFormatters.formatSpeedKmh(avgKmh),
                 ),
@@ -178,6 +235,15 @@ class _TrackStatsPanel extends StatelessWidget {
                   value: '${track.elevationGainMeters.round()} м',
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onReplay,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Replay'),
+              ),
             ),
           ],
         ),

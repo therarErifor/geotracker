@@ -126,11 +126,11 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  init,TResult Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  String? saveError)?  loaded,TResult Function( Object error)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  init,TResult Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  List<Marker> trackMarkers,  String? saveError,  String? sessionInterruptedMessage)?  loaded,TResult Function( Object error)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init();case _Loaded() when loaded != null:
-return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.saveError);case _Error() when error != null:
+return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.trackMarkers,_that.saveError,_that.sessionInterruptedMessage);case _Error() when error != null:
 return error(_that.error);case _:
   return orElse();
 
@@ -149,11 +149,11 @@ return error(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  init,required TResult Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  String? saveError)  loaded,required TResult Function( Object error)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  init,required TResult Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  List<Marker> trackMarkers,  String? saveError,  String? sessionInterruptedMessage)  loaded,required TResult Function( Object error)  error,}) {final _that = this;
 switch (_that) {
 case _Init():
 return init();case _Loaded():
-return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.saveError);case _Error():
+return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.trackMarkers,_that.saveError,_that.sessionInterruptedMessage);case _Error():
 return error(_that.error);case _:
   throw StateError('Unexpected subclass');
 
@@ -171,11 +171,11 @@ return error(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  init,TResult? Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  String? saveError)?  loaded,TResult? Function( Object error)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  init,TResult? Function( TrackingStatus trackingStatus,  UserPosition? userPosition,  LatLng initialMapCenter,  double initialMapZoom,  List<TrackPoint> recordingPoints,  double distanceMeters,  Duration elapsedTime,  double? currentSpeedKmh,  double averageSpeedKmh,  bool showRecenterButton,  List<Marker> trackMarkers,  String? saveError,  String? sessionInterruptedMessage)?  loaded,TResult? Function( Object error)?  error,}) {final _that = this;
 switch (_that) {
 case _Init() when init != null:
 return init();case _Loaded() when loaded != null:
-return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.saveError);case _Error() when error != null:
+return loaded(_that.trackingStatus,_that.userPosition,_that.initialMapCenter,_that.initialMapZoom,_that.recordingPoints,_that.distanceMeters,_that.elapsedTime,_that.currentSpeedKmh,_that.averageSpeedKmh,_that.showRecenterButton,_that.trackMarkers,_that.saveError,_that.sessionInterruptedMessage);case _Error() when error != null:
 return error(_that.error);case _:
   return null;
 
@@ -220,7 +220,7 @@ String toString() {
 
 
 class _Loaded implements MainState {
-  const _Loaded({required this.trackingStatus, required this.userPosition, required this.initialMapCenter, this.initialMapZoom = 16.0,  List<TrackPoint> recordingPoints = const <TrackPoint>[], this.distanceMeters = 0.0, this.elapsedTime = Duration.zero, this.currentSpeedKmh, this.averageSpeedKmh = 0.0, this.showRecenterButton = false, this.saveError}): _recordingPoints = recordingPoints;
+  const _Loaded({required this.trackingStatus, required this.userPosition, required this.initialMapCenter, this.initialMapZoom = 16.0,  List<TrackPoint> recordingPoints = const <TrackPoint>[], this.distanceMeters = 0.0, this.elapsedTime = Duration.zero, this.currentSpeedKmh, this.averageSpeedKmh = 0.0, this.showRecenterButton = false,  List<Marker> trackMarkers = const <Marker>[], this.saveError, this.sessionInterruptedMessage}): _recordingPoints = recordingPoints,_trackMarkers = trackMarkers;
   
 
  final  TrackingStatus trackingStatus;
@@ -239,7 +239,15 @@ class _Loaded implements MainState {
  final  double? currentSpeedKmh;
 @JsonKey() final  double averageSpeedKmh;
 @JsonKey() final  bool showRecenterButton;
+ final  List<Marker> _trackMarkers;
+@JsonKey() List<Marker> get trackMarkers {
+  if (_trackMarkers is EqualUnmodifiableListView) return _trackMarkers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_trackMarkers);
+}
+
  final  String? saveError;
+ final  String? sessionInterruptedMessage;
 
 /// Create a copy of MainState
 /// with the given fields replaced by the non-null parameter values.
@@ -251,18 +259,18 @@ _$LoadedCopyWith<_Loaded> get copyWith => __$LoadedCopyWithImpl<_Loaded>(this, _
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Loaded&&(identical(other.trackingStatus, trackingStatus) || other.trackingStatus == trackingStatus)&&(identical(other.userPosition, userPosition) || other.userPosition == userPosition)&&(identical(other.initialMapCenter, initialMapCenter) || other.initialMapCenter == initialMapCenter)&&(identical(other.initialMapZoom, initialMapZoom) || other.initialMapZoom == initialMapZoom)&&const DeepCollectionEquality().equals(other.recordingPoints, _recordingPoints)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.elapsedTime, elapsedTime) || other.elapsedTime == elapsedTime)&&(identical(other.currentSpeedKmh, currentSpeedKmh) || other.currentSpeedKmh == currentSpeedKmh)&&(identical(other.averageSpeedKmh, averageSpeedKmh) || other.averageSpeedKmh == averageSpeedKmh)&&(identical(other.showRecenterButton, showRecenterButton) || other.showRecenterButton == showRecenterButton)&&(identical(other.saveError, saveError) || other.saveError == saveError));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Loaded&&(identical(other.trackingStatus, trackingStatus) || other.trackingStatus == trackingStatus)&&(identical(other.userPosition, userPosition) || other.userPosition == userPosition)&&(identical(other.initialMapCenter, initialMapCenter) || other.initialMapCenter == initialMapCenter)&&(identical(other.initialMapZoom, initialMapZoom) || other.initialMapZoom == initialMapZoom)&&const DeepCollectionEquality().equals(other.recordingPoints, _recordingPoints)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.elapsedTime, elapsedTime) || other.elapsedTime == elapsedTime)&&(identical(other.currentSpeedKmh, currentSpeedKmh) || other.currentSpeedKmh == currentSpeedKmh)&&(identical(other.averageSpeedKmh, averageSpeedKmh) || other.averageSpeedKmh == averageSpeedKmh)&&(identical(other.showRecenterButton, showRecenterButton) || other.showRecenterButton == showRecenterButton)&&const DeepCollectionEquality().equals(other.trackMarkers, _trackMarkers)&&(identical(other.saveError, saveError) || other.saveError == saveError)&&(identical(other.sessionInterruptedMessage, sessionInterruptedMessage) || other.sessionInterruptedMessage == sessionInterruptedMessage));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,trackingStatus,userPosition,initialMapCenter,initialMapZoom,const DeepCollectionEquality().hash(_recordingPoints),distanceMeters,elapsedTime,currentSpeedKmh,averageSpeedKmh,showRecenterButton,saveError);
+    return Object.hash(runtimeType,trackingStatus,userPosition,initialMapCenter,initialMapZoom,const DeepCollectionEquality().hash(_recordingPoints),distanceMeters,elapsedTime,currentSpeedKmh,averageSpeedKmh,showRecenterButton,const DeepCollectionEquality().hash(_trackMarkers),saveError,sessionInterruptedMessage);
 }
 
 @override
 String toString() {
-    return 'MainState.loaded(trackingStatus: $trackingStatus, userPosition: $userPosition, initialMapCenter: $initialMapCenter, initialMapZoom: $initialMapZoom, recordingPoints: $recordingPoints, distanceMeters: $distanceMeters, elapsedTime: $elapsedTime, currentSpeedKmh: $currentSpeedKmh, averageSpeedKmh: $averageSpeedKmh, showRecenterButton: $showRecenterButton, saveError: $saveError)';
+    return 'MainState.loaded(trackingStatus: $trackingStatus, userPosition: $userPosition, initialMapCenter: $initialMapCenter, initialMapZoom: $initialMapZoom, recordingPoints: $recordingPoints, distanceMeters: $distanceMeters, elapsedTime: $elapsedTime, currentSpeedKmh: $currentSpeedKmh, averageSpeedKmh: $averageSpeedKmh, showRecenterButton: $showRecenterButton, trackMarkers: $trackMarkers, saveError: $saveError, sessionInterruptedMessage: $sessionInterruptedMessage)';
 }
 
 
@@ -273,7 +281,7 @@ abstract mixin class _$LoadedCopyWith<$Res> implements $MainStateCopyWith<$Res> 
   factory _$LoadedCopyWith(_Loaded value, $Res Function(_Loaded) _then) = __$LoadedCopyWithImpl;
 @useResult
 $Res call({
- TrackingStatus trackingStatus, UserPosition? userPosition, LatLng initialMapCenter, double initialMapZoom, List<TrackPoint> recordingPoints, double distanceMeters, Duration elapsedTime, double? currentSpeedKmh, double averageSpeedKmh, bool showRecenterButton, String? saveError
+ TrackingStatus trackingStatus, UserPosition? userPosition, LatLng initialMapCenter, double initialMapZoom, List<TrackPoint> recordingPoints, double distanceMeters, Duration elapsedTime, double? currentSpeedKmh, double averageSpeedKmh, bool showRecenterButton, List<Marker> trackMarkers, String? saveError, String? sessionInterruptedMessage
 });
 
 
@@ -290,7 +298,7 @@ class __$LoadedCopyWithImpl<$Res>
 
 /// Create a copy of MainState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? trackingStatus = null,Object? userPosition = freezed,Object? initialMapCenter = null,Object? initialMapZoom = null,Object? recordingPoints = null,Object? distanceMeters = null,Object? elapsedTime = null,Object? currentSpeedKmh = freezed,Object? averageSpeedKmh = null,Object? showRecenterButton = null,Object? saveError = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? trackingStatus = null,Object? userPosition = freezed,Object? initialMapCenter = null,Object? initialMapZoom = null,Object? recordingPoints = null,Object? distanceMeters = null,Object? elapsedTime = null,Object? currentSpeedKmh = freezed,Object? averageSpeedKmh = null,Object? showRecenterButton = null,Object? trackMarkers = null,Object? saveError = freezed,Object? sessionInterruptedMessage = freezed,}) {
   return _then(_Loaded(
 trackingStatus: null == trackingStatus ? _self.trackingStatus : trackingStatus // ignore: cast_nullable_to_non_nullable
 as TrackingStatus,userPosition: freezed == userPosition ? _self.userPosition : userPosition // ignore: cast_nullable_to_non_nullable
@@ -302,7 +310,9 @@ as double,elapsedTime: null == elapsedTime ? _self.elapsedTime : elapsedTime // 
 as Duration,currentSpeedKmh: freezed == currentSpeedKmh ? _self.currentSpeedKmh : currentSpeedKmh // ignore: cast_nullable_to_non_nullable
 as double?,averageSpeedKmh: null == averageSpeedKmh ? _self.averageSpeedKmh : averageSpeedKmh // ignore: cast_nullable_to_non_nullable
 as double,showRecenterButton: null == showRecenterButton ? _self.showRecenterButton : showRecenterButton // ignore: cast_nullable_to_non_nullable
-as bool,saveError: freezed == saveError ? _self.saveError : saveError // ignore: cast_nullable_to_non_nullable
+as bool,trackMarkers: null == trackMarkers ? _self._trackMarkers : trackMarkers // ignore: cast_nullable_to_non_nullable
+as List<Marker>,saveError: freezed == saveError ? _self.saveError : saveError // ignore: cast_nullable_to_non_nullable
+as String?,sessionInterruptedMessage: freezed == sessionInterruptedMessage ? _self.sessionInterruptedMessage : sessionInterruptedMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
