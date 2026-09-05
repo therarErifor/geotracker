@@ -15,6 +15,7 @@ import 'package:geotracker/src/entities/user_position.dart';
 import 'package:geotracker/src/services/geolocation_service.dart';
 import 'package:geotracker/src/services/track_recording_service.dart';
 import 'package:geotracker/src/ui/formatters/track_formatters.dart';
+import 'package:geotracker/src/ui/widgets/map_camera_motion.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
@@ -214,7 +215,7 @@ class MainCubit extends Cubit<MainState> {
           heading: position.heading,
         );
         _cameraFollowEnabled = true;
-        _followUserPosition();
+        _followUserPosition(animated: true);
       }
       if (result.error == ErrorType.permissionDenied) {
         emit(MainState.error(error: result.error!));
@@ -228,18 +229,18 @@ class MainCubit extends Cubit<MainState> {
 
   void recenterCamera() {
     _cameraFollowEnabled = true;
-    _followUserPosition();
+    _followUserPosition(animated: true);
     _emitLoaded();
   }
 
   void zoomIn() {
     _currentZoom = _currentZoom + 0.6;
-    _mapController.move(_currentMapCenter, _currentZoom);
+    moveMapCamera(_mapController, _currentMapCenter, _currentZoom);
   }
 
   void zoomOut() {
     _currentZoom = _currentZoom - 0.6;
-    _mapController.move(_currentMapCenter, _currentZoom);
+    moveMapCamera(_mapController, _currentMapCenter, _currentZoom);
   }
 
   Future<void> tracking() async {
@@ -434,13 +435,13 @@ class MainCubit extends Cubit<MainState> {
     _elapsedTimer = null;
   }
 
-  void _followUserPosition() {
+  void _followUserPosition({bool animated = false}) {
     final position = _userPosition?.currentPosition;
     if (position == null) {
       return;
     }
     _currentMapCenter = position;
-    _mapController.move(position, _currentZoom);
+    moveMapCamera(_mapController, position, _currentZoom, animated: animated);
   }
 
   void _emitLoaded({double? initialZoom}) {
