@@ -31,9 +31,6 @@ class GeolocationService {
         permissionStatus == LocationPermission.always;
   }
 
-  /// Upgrades to Always when the platform supports it (needed for iOS background).
-  ///
-  /// Returns true when the app has at least while-in-use (Android FGS) or Always.
   Future<bool> requestAlwaysPermission() async {
     var permissionStatus = await Geolocator.checkPermission();
     if (permissionStatus == LocationPermission.denied ||
@@ -41,7 +38,6 @@ class GeolocationService {
       permissionStatus = await Geolocator.requestPermission();
     }
     if (permissionStatus == LocationPermission.whileInUse) {
-      // Second request can present the Always upgrade dialog on iOS.
       permissionStatus = await Geolocator.requestPermission();
     }
     return permissionStatus == LocationPermission.whileInUse ||
@@ -52,7 +48,6 @@ class GeolocationService {
     await Geolocator.openAppSettings();
   }
 
-  /// Foreground map updates (no FGS / background mode).
   Stream<Position> watchPosition() {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -61,7 +56,6 @@ class GeolocationService {
     return Geolocator.getPositionStream(locationSettings: locationSettings);
   }
 
-  /// Location stream for an active recording session (Android FGS + iOS background).
   Stream<Position> watchRecordingPosition() {
     return Geolocator.getPositionStream(
       locationSettings: _recordingLocationSettings(),

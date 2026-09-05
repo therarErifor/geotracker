@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geotracker/src/data/repositories/track_repository.dart';
+import 'package:geotracker/src/domain/pause_interval.dart';
+import 'package:geotracker/src/domain/playback_timeline.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_calculations.dart';
 import 'package:geotracker/src/domain/track_interpolation.dart';
@@ -22,6 +24,7 @@ class ReplayCubit extends Cubit<ReplayState> {
   final MapController mapController = MapController();
 
   Track? _track;
+  List<PauseInterval> _gapPauses = const [];
   Duration _playbackTime = Duration.zero;
   double _speed = 1;
   bool _isPlaying = false;
@@ -39,6 +42,10 @@ class ReplayCubit extends Cubit<ReplayState> {
         return;
       }
       _track = track;
+      _gapPauses = PlaybackTimeline.gapIntervals(
+        stops: track.stops,
+        points: track.points,
+      );
       _playbackTime = Duration.zero;
       _speed = 1;
       _isPlaying = false;
@@ -78,11 +85,11 @@ class ReplayCubit extends Cubit<ReplayState> {
     if (track == null) {
       return;
     }
-    final max = _durationOf(track);
+    final maximum = _durationOf(track);
     if (time.isNegative) {
       _playbackTime = Duration.zero;
-    } else if (time > max) {
-      _playbackTime = max;
+    } else if (time > maximum) {
+      _playbackTime = maximum;
     } else {
       _playbackTime = time;
     }
@@ -122,10 +129,10 @@ class ReplayCubit extends Cubit<ReplayState> {
     final advanced = Duration(
       microseconds: (elapsed.inMicroseconds * _speed).round(),
     );
-    final max = _durationOf(track);
+    final maximum = _durationOf(track);
     _playbackTime += advanced;
-    if (_playbackTime >= max) {
-      _playbackTime = max;
+    if (_playbackTime >= maximum) {
+      _playbackTime = maximum;
       pause();
       return;
     }
@@ -140,8 +147,16 @@ class ReplayCubit extends Cubit<ReplayState> {
     return TrackCalculations.durationFromPoints(track.points);
   }
 
-  DateTime _playbackInstant(Track track) {
-    return track.startedAt.add(_playbackTime);
+  DateTime playbackInstant() {
+    final track = _track;
+    if (track == null) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    return PlaybackTimeline.wallClockAt(
+      startedAt: track.startedAt,
+      activeElapsed: _playbackTime,
+      pauses: _gapPauses,
+    );
   }
 
   void _followPlayback() {
@@ -154,7 +169,7 @@ class ReplayCubit extends Cubit<ReplayState> {
     }
     final interpolated = TrackInterpolation.at(
       track.points,
-      _playbackInstant(track),
+      playbackInstant(),
     );
     if (interpolated == null) {
       return;
@@ -164,9 +179,7 @@ class ReplayCubit extends Cubit<ReplayState> {
         LatLng(interpolated.latitude, interpolated.longitude),
         _zoom,
       );
-    } catch (_) {
-      // Map is not ready yet.
-    }
+    } catch (_) {}
   }
 
   UserPosition? playbackUserPosition() {
@@ -176,7 +189,7 @@ class ReplayCubit extends Cubit<ReplayState> {
     }
     final interpolated = TrackInterpolation.at(
       track.points,
-      _playbackInstant(track),
+      playbackInstant(),
     );
     if (interpolated == null) {
       return null;

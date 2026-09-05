@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart' hide Marker;
+import 'package:geotracker/src/core/app_log.dart';
 import 'package:geotracker/src/data/repositories/track_repository.dart';
 import 'package:geotracker/src/domain/marker.dart';
 import 'package:geotracker/src/domain/stop_detection.dart';
@@ -18,6 +19,7 @@ import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
 
+import 'locate_button_kind.dart';
 import 'main_state.dart';
 
 @Injectable()
@@ -69,6 +71,7 @@ class MainCubit extends Cubit<MainState> {
       }
       var result = await _geolocationService.getCurrentPositionAsync();
       if (result.error == ErrorType.permissionDenied) {
+        AppLog.w('MainCubit.init permission denied');
         emit(MainState.error(error: result.error!));
         return;
       }
@@ -79,8 +82,10 @@ class MainCubit extends Cubit<MainState> {
         heading: position.heading,
       );
       await _restoreSessionIfNeeded();
+      AppLog.i('MainCubit.init ok lat=${position.latitude} lon=${position.longitude}');
       _emitLoaded();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLog.e('MainCubit.init fallback map center', e, stackTrace);
       _currentMapCenter = LatLng(58.021688, 56.227984);
       await _restoreSessionIfNeeded();
       _emitLoaded(initialZoom: _currentZoom - 14);
@@ -103,6 +108,7 @@ class MainCubit extends Cubit<MainState> {
       await _trackRepository.discardDraft(draft.track.id);
       _sessionInterruptedMessage =
           'Приложение было принудительно остановлено, и записать маршрут не удалось.';
+      AppLog.w('Draft discarded empty id=${draft.track.id}');
       return;
     }
 
@@ -132,15 +138,15 @@ class MainCubit extends Cubit<MainState> {
       );
       _currentMapCenter = _userPosition!.currentPosition;
       _currentSpeedKmh = latest.speed != null
-          ? TrackFormatters.mpsToKmh(latest.speed!)
+          ? TrackFormatters.metersPerSecondToKilometersPerHour(latest.speed!)
           : null;
     }
 
-    final avgMps = TrackCalculations.averageSpeedMps(
+    final averageMetersPerSecond = TrackCalculations.averageSpeedMps(
       _distanceMeters,
       _elapsedTime,
     );
-    _averageSpeedKmh = TrackFormatters.mpsToKmh(avgMps);
+    _averageSpeedKmh = TrackFormatters.metersPerSecondToKilometersPerHour(averageMetersPerSecond);
 
     if (_trackingStatus == TrackingStatus.tracking) {
       _cameraFollowEnabled = true;
@@ -169,15 +175,15 @@ class MainCubit extends Cubit<MainState> {
         speed: latest.speed,
       );
       _currentSpeedKmh = latest.speed != null
-          ? TrackFormatters.mpsToKmh(latest.speed!)
+          ? TrackFormatters.metersPerSecondToKilometersPerHour(latest.speed!)
           : null;
     }
 
-    final avgMps = TrackCalculations.averageSpeedMps(
+    final averageMetersPerSecond = TrackCalculations.averageSpeedMps(
       _distanceMeters,
       _elapsedTime,
     );
-    _averageSpeedKmh = TrackFormatters.mpsToKmh(avgMps);
+    _averageSpeedKmh = TrackFormatters.metersPerSecondToKilometersPerHour(averageMetersPerSecond);
 
     if (_trackingStatus == TrackingStatus.tracking && _cameraFollowEnabled) {
       _followUserPosition();
@@ -190,7 +196,7 @@ class MainCubit extends Cubit<MainState> {
     _currentMapCenter = camera.center;
     _currentZoom = camera.zoom;
 
-    if (hasGesture && _trackingStatus == TrackingStatus.tracking) {
+    if (hasGesture) {
       _cameraFollowEnabled = false;
       _emitLoaded();
     }
@@ -207,7 +213,8 @@ class MainCubit extends Cubit<MainState> {
           currentPosition: LatLng(position.latitude, position.longitude),
           heading: position.heading,
         );
-        _mapController.move(_userPosition!.currentPosition, _currentZoom);
+        _cameraFollowEnabled = true;
+        _followUserPosition();
       }
       if (result.error == ErrorType.permissionDenied) {
         emit(MainState.error(error: result.error!));
@@ -308,8 +315,13 @@ class MainCubit extends Cubit<MainState> {
       await _trackRepository.finalizeTrack(track);
       await _trackRecordingService.reset();
       _resetRecordingUiState();
+      AppLog.i(
+        'Track saved id=${track.id} points=${track.points.length} '
+        'distance=${track.distanceMeters.toStringAsFixed(1)}m',
+      );
       _emitLoaded();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLog.e('Track save failed id=$sessionId', error, stackTrace);
       _saveError = 'Не удалось сохранить маршрут';
       _emitLoaded();
     }
@@ -361,6 +373,7 @@ class MainCubit extends Cubit<MainState> {
         ),
       ),
     );
+    AppLog.i('Marker added lat=$latitude lon=$longitude title=$trimmedTitle');
     return null;
   }
 
@@ -407,11 +420,11 @@ class MainCubit extends Cubit<MainState> {
         return;
       }
       _elapsedTime = _trackRecordingService.currentSnapshot.elapsedTime;
-      final avgMps = TrackCalculations.averageSpeedMps(
+      final averageMetersPerSecond = TrackCalculations.averageSpeedMps(
         _distanceMeters,
         _elapsedTime,
       );
-      _averageSpeedKmh = TrackFormatters.mpsToKmh(avgMps);
+      _averageSpeedKmh = TrackFormatters.metersPerSecondToKilometersPerHour(averageMetersPerSecond);
       _emitLoaded();
     });
   }
@@ -447,8 +460,12 @@ class MainCubit extends Cubit<MainState> {
         currentSpeedKmh: _currentSpeedKmh,
         averageSpeedKmh: _averageSpeedKmh,
         showRecenterButton:
-            _trackingStatus == TrackingStatus.tracking &&
-            !_cameraFollowEnabled,
+            locateButtonKind(
+              trackingStatus: _trackingStatus,
+              cameraLockedToUser: _cameraFollowEnabled,
+              hasUserPosition: _userPosition != null,
+            ) !=
+            LocateButtonKind.hidden,
         trackMarkers: _trackMarkers,
         saveError: _saveError,
         sessionInterruptedMessage: _sessionInterruptedMessage,

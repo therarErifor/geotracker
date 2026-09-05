@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../../entities/user_position.dart';
 
-const urlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const urlTemplate =
+    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const tileUserAgentPackageName = 'com.example.geotracker';
 
 class Map extends StatelessWidget {
   const Map({
@@ -57,7 +59,14 @@ class Map extends StatelessWidget {
         },
       ),
       children: [
-        TileLayer(urlTemplate: urlTemplate),
+        TileLayer(
+          urlTemplate: urlTemplate,
+          subdomains: const ['a', 'b', 'c', 'd'],
+          userAgentPackageName: tileUserAgentPackageName,
+        ),
+        const SimpleAttributionWidget(
+          source: Text('OpenStreetMap, CARTO'),
+        ),
 
         if (polylinePoints.length >= 2)
           PolylineLayer(

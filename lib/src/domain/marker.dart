@@ -1,6 +1,3 @@
-/// A user-placed point of interest on a track.
-///
-/// Domain-only: no Flutter or plugin types. Photos are out of scope.
 class Marker {
   const Marker({
     required this.id,

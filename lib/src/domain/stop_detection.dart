@@ -2,22 +2,16 @@ import 'package:geotracker/src/domain/pause_interval.dart';
 import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 
-/// Tunable thresholds for automatic stop detection.
 class StopDetectionConfig {
   const StopDetectionConfig({
     this.maxSpeedMps = 1 / 3.6,
     this.minDuration = const Duration(seconds: 60),
   });
 
-  /// Speeds strictly below this count as stationary (default 1 km/h).
   final double maxSpeedMps;
-
-  /// Minimum duration for GPS-speed runs and timestamp gaps.
-  /// User pauses are always stops, even when shorter.
   final Duration minDuration;
 }
 
-/// Builds [Stop] intervals from GPS points and explicit recording pauses.
 class StopDetection {
   const StopDetection([this.config = const StopDetectionConfig()]);
 

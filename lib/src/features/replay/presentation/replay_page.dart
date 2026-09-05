@@ -96,8 +96,9 @@ class _ReplayLoaded extends StatelessWidget {
     final duration = track.duration > Duration.zero
         ? track.duration
         : TrackCalculations.durationFromPoints(track.points);
-    final maxMs = duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
-    final instant = track.startedAt.add(playbackTime);
+    final maximumMilliseconds =
+        duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
+    final instant = cubit.playbackInstant();
     final interpolated = TrackInterpolation.at(track.points, instant);
     final userPosition = cubit.playbackUserPosition();
     final visibleMarkers = track.markers
@@ -106,10 +107,12 @@ class _ReplayLoaded extends StatelessWidget {
     final center = interpolated != null
         ? LatLng(interpolated.latitude, interpolated.longitude)
         : LatLng(track.points.first.latitude, track.points.first.longitude);
-    final currentSpeedKmh = interpolated?.speed != null
-        ? TrackFormatters.mpsToKmh(interpolated!.speed!)
+    final currentSpeedKilometersPerHour = interpolated?.speed != null
+        ? TrackFormatters.metersPerSecondToKilometersPerHour(
+            interpolated!.speed!,
+          )
         : null;
-    final distanceShare = _distanceUntil(track, playbackTime);
+    final distanceShare = _distanceUntil(track, playbackTime, duration);
 
     return Column(
       children: [
@@ -134,8 +137,9 @@ class _ReplayLoaded extends StatelessWidget {
                   child: LiveStatsOverlay(
                     distanceMeters: distanceShare,
                     elapsedTime: playbackTime,
-                    currentSpeedKmh: currentSpeedKmh,
-                    averageSpeedKmh: TrackFormatters.mpsToKmh(
+                    currentSpeedKmh: currentSpeedKilometersPerHour,
+                    averageSpeedKmh:
+                        TrackFormatters.metersPerSecondToKilometersPerHour(
                       track.averageSpeedMps,
                     ),
                   ),
@@ -159,8 +163,10 @@ class _ReplayLoaded extends StatelessWidget {
             child: Column(
               children: [
                 Slider(
-                  value: playbackTime.inMilliseconds.clamp(0, maxMs).toDouble(),
-                  max: maxMs.toDouble(),
+                  value: playbackTime.inMilliseconds
+                      .clamp(0, maximumMilliseconds)
+                      .toDouble(),
+                  max: maximumMilliseconds.toDouble(),
                   onChanged: (value) {
                     cubit.seek(Duration(milliseconds: value.round()));
                   },
@@ -171,9 +177,9 @@ class _ReplayLoaded extends StatelessWidget {
                       onPressed: isPlaying ? cubit.pause : cubit.play,
                       icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                     ),
-                    Text(TrackFormatters.formatDurationHms(playbackTime)),
+                    Text(TrackFormatters.formatDuration(playbackTime)),
                     const Text(' / '),
-                    Text(TrackFormatters.formatDurationHms(duration)),
+                    Text(TrackFormatters.formatDuration(duration)),
                     const Spacer(),
                     TextButton(
                       onPressed: cubit.cycleSpeed,
@@ -189,12 +195,11 @@ class _ReplayLoaded extends StatelessWidget {
     );
   }
 
-  double _distanceUntil(Track track, Duration time) {
-    if (track.points.length < 2 || track.duration.inMilliseconds == 0) {
+  double _distanceUntil(Track track, Duration time, Duration duration) {
+    if (track.points.length < 2 || duration.inMilliseconds == 0) {
       return 0;
     }
-    final fraction =
-        time.inMilliseconds / track.duration.inMilliseconds;
+    final fraction = time.inMilliseconds / duration.inMilliseconds;
     return track.distanceMeters * fraction.clamp(0, 1);
   }
 }

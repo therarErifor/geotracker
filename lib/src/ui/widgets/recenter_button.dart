@@ -7,15 +7,11 @@ class RecenterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      elevation: 2,
-      shape: const CircleBorder(),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: IconButton(
+    return IconButton(
+      iconSize: 32,
         onPressed: onPressed,
         tooltip: 'Вернуться к трекингу',
         icon: const Icon(Icons.my_location),
-      ),
-    );
+      );
   }
 }

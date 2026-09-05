@@ -1,13 +1,6 @@
-/// Pure wall-clock elapsed time for a recording session, excluding pauses.
 class SessionElapsed {
   SessionElapsed._();
 
-  /// Elapsed active time from [startedAt] to the effective end moment.
-  ///
-  /// - [isIdle] or null [startedAt] → zero.
-  /// - Active recording → [now] minus completed pauses ([totalPausedDuration]).
-  /// - Paused → frozen at [pauseStartedAt] (current pause not in [totalPausedDuration] yet).
-  /// - Finished → frozen at [finishedAt].
   static Duration compute({
     DateTime? startedAt,
     Duration totalPausedDuration = Duration.zero,

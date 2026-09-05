@@ -184,8 +184,8 @@ class _TrackStatsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final avgKmh = TrackFormatters.mpsToKmh(track.averageSpeedMps);
-    final maxKmh = TrackFormatters.mpsToKmh(track.maxSpeedMps);
+    final averageKilometersPerHour = TrackFormatters.metersPerSecondToKilometersPerHour(track.averageSpeedMps);
+    final maxKilometersPerHour = TrackFormatters.metersPerSecondToKilometersPerHour(track.maxSpeedMps);
 
     return Material(
       elevation: 4,
@@ -206,15 +206,15 @@ class _TrackStatsPanel extends StatelessWidget {
                 ),
                 _Stat(
                   label: 'Время',
-                  value: TrackFormatters.formatDurationHms(track.duration),
+                  value: TrackFormatters.formatDuration(track.duration),
                 ),
                 _Stat(
                   label: 'В движении',
-                  value: TrackFormatters.formatDurationHms(track.movingDuration),
+                  value: TrackFormatters.formatDuration(track.movingDuration),
                 ),
                 _Stat(
                   label: 'Остановки',
-                  value: TrackFormatters.formatDurationHms(
+                  value: TrackFormatters.formatDuration(
                     track.stoppedDuration,
                   ),
                 ),
@@ -224,11 +224,11 @@ class _TrackStatsPanel extends StatelessWidget {
                 ),
                 _Stat(
                   label: 'Средняя',
-                  value: TrackFormatters.formatSpeedKmh(avgKmh),
+                  value: TrackFormatters.formatSpeedKmh(averageKilometersPerHour),
                 ),
                 _Stat(
                   label: 'Макс.',
-                  value: TrackFormatters.formatSpeedKmh(maxKmh),
+                  value: TrackFormatters.formatSpeedKmh(maxKilometersPerHour),
                 ),
                 _Stat(
                   label: 'Набор высоты',

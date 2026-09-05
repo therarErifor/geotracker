@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:geotracker/src/core/app_log.dart';
 import 'package:geotracker/src/data/repositories/track_repository.dart';
 import 'package:geotracker/src/domain/gps_filter.dart';
 import 'package:geotracker/src/domain/marker.dart';
@@ -15,7 +16,6 @@ import 'package:uuid/uuid.dart';
 
 enum RecordingStatus { idle, recording, paused, finished }
 
-/// Immutable snapshot of an in-memory recording session.
 class RecordingSnapshot {
   const RecordingSnapshot({
     this.status = RecordingStatus.idle,
@@ -37,8 +37,6 @@ class RecordingSnapshot {
   final Duration elapsedTime;
   final List<Marker> markers;
   final List<PauseInterval> pauseIntervals;
-
-  /// Latest raw GPS sample (may differ from last filtered track point).
   final TrackPoint? latestPosition;
 
   TrackPoint? get lastAcceptedPoint => points.isEmpty ? null : points.last;
@@ -66,9 +64,19 @@ class TrackRecordingService {
   int _persistedPointCount = 0;
   bool _checkpointInFlight = false;
   bool _checkpointQueued = false;
+  bool _checkpointReplaceMarkersQueued = false;
 
   Stream<RecordingSnapshot> get snapshots => _snapshotsController.stream;
-  RecordingSnapshot get currentSnapshot => _snapshot;
+
+  RecordingSnapshot get currentSnapshot {
+    if (_snapshot.status == RecordingStatus.idle ||
+        _snapshot.status == RecordingStatus.finished ||
+        _snapshot.status == RecordingStatus.paused) {
+      return _snapshot;
+    }
+    return _copySnapshotWithElapsed(_snapshot, DateTime.now());
+  }
+
   String? get sessionId => _sessionId;
 
   Future<void> start() async {
@@ -110,6 +118,10 @@ class TrackRecordingService {
     );
     await _checkpoint();
     await _ensurePositionStream();
+    AppLog.i(
+      'Recording start session=$_sessionId new=$isNewSession '
+      'points=${_snapshot.points.length}',
+    );
   }
 
   Future<void> resume() async {
@@ -118,10 +130,8 @@ class TrackRecordingService {
     }
 
     await _geolocationService.requestAlwaysPermission();
-
     _finalizeOpenPause(DateTime.now());
     _finishedAt = null;
-
     _emitSnapshot(
       status: RecordingStatus.recording,
       points: _snapshot.points,
@@ -130,6 +140,9 @@ class TrackRecordingService {
     );
     await _checkpoint();
     await _ensurePositionStream();
+    AppLog.i(
+      'Recording resume session=$_sessionId points=${_snapshot.points.length}',
+    );
   }
 
   Future<void> pause() async {
@@ -146,6 +159,9 @@ class TrackRecordingService {
       latestPosition: _snapshot.latestPosition,
     );
     await _checkpoint();
+    AppLog.i(
+      'Recording pause session=$_sessionId points=${_snapshot.points.length}',
+    );
   }
 
   Future<void> finish() async {
@@ -163,6 +179,10 @@ class TrackRecordingService {
       latestPosition: _snapshot.latestPosition,
     );
     await _checkpoint();
+    AppLog.i(
+      'Recording finish session=$_sessionId points=${_snapshot.points.length} '
+      'elapsed=${_snapshot.elapsedTime.inSeconds}s',
+    );
   }
 
   Future<void> addMarker(Marker marker) async {
@@ -198,7 +218,6 @@ class TrackRecordingService {
     }
   }
 
-  /// Hydrates in-memory state from a persisted draft and optionally resumes GPS.
   Future<void> restoreFromDraft(RecordingDraft draft) async {
     await _cancelPositionStream();
 
@@ -213,7 +232,7 @@ class TrackRecordingService {
     _totalPausedDuration = draft.totalPausedDuration;
     _pauseStartedAt = draft.openPauseStartedAt;
     _finishedAt = status == RecordingStatus.finished
-        ? (draft.track.finishedAt ?? DateTime.now())
+        ? _finishedAtFromDraft(draft)
         : null;
     _persistedPointCount = draft.track.points.length;
 
@@ -230,11 +249,24 @@ class TrackRecordingService {
       await _geolocationService.requestAlwaysPermission();
       await _ensurePositionStream();
     }
+    AppLog.i(
+      'Recording restore session=$_sessionId status=${status.name} '
+      'points=${draft.track.points.length}',
+    );
   }
 
   void dispose() {
     _positionSubscription?.cancel();
     _snapshotsController.close();
+  }
+
+  DateTime _finishedAtFromDraft(RecordingDraft draft) {
+    if (draft.track.finishedAt != null) {
+      return draft.track.finishedAt!;
+    }
+    return draft.track.startedAt
+        .add(draft.track.duration)
+        .add(draft.totalPausedDuration);
   }
 
   RecordingStatus? _statusFromName(String name) {
@@ -271,9 +303,12 @@ class TrackRecordingService {
     if (_positionSubscription != null) {
       return;
     }
+    AppLog.i('GPS stream subscribe session=$_sessionId');
     _positionSubscription = _geolocationService.watchRecordingPosition().listen(
       _onPosition,
-      onError: (_) {},
+      onError: (Object error, StackTrace stackTrace) {
+        AppLog.e('GPS stream error', error, stackTrace);
+      },
     );
   }
 
@@ -314,13 +349,22 @@ class TrackRecordingService {
 
     if (_checkpointInFlight) {
       _checkpointQueued = true;
+      if (replaceMarkers) {
+        _checkpointReplaceMarkersQueued = true;
+      }
       return;
     }
     _checkpointInFlight = true;
 
+    var pendingReplaceMarkers = replaceMarkers;
     try {
       do {
         _checkpointQueued = false;
+        final shouldReplaceMarkers =
+            pendingReplaceMarkers || _checkpointReplaceMarkersQueued;
+        pendingReplaceMarkers = false;
+        _checkpointReplaceMarkersQueued = false;
+
         final points = _snapshot.points;
         final newPoints = points.skip(_persistedPointCount).toList();
         if (newPoints.isNotEmpty) {
@@ -332,7 +376,7 @@ class TrackRecordingService {
           _persistedPointCount = points.length;
         }
 
-        if (replaceMarkers) {
+        if (shouldReplaceMarkers) {
           await _trackRepository.replaceMarkers(
             trackId: id,
             markers: _markers,
@@ -351,7 +395,6 @@ class TrackRecordingService {
         );
       } while (_checkpointQueued);
     } catch (_) {
-      // Keep recording in memory; next checkpoint retries.
     } finally {
       _checkpointInFlight = false;
     }
@@ -368,32 +411,48 @@ class TrackRecordingService {
     );
     final resolvedStartedAt = startedAt ?? _snapshot.startedAt;
     final resolvedLatest = latestPosition ?? _snapshot.latestPosition;
-    final elapsedTime = SessionElapsed.compute(
-      startedAt: resolvedStartedAt,
-      totalPausedDuration: _totalPausedDuration,
-      pauseStartedAt: _pauseStartedAt,
-      finishedAt: _finishedAt,
-      now: DateTime.now(),
-      isIdle: status == RecordingStatus.idle,
-      isPaused: status == RecordingStatus.paused,
-      isFinished: status == RecordingStatus.finished,
-    );
-
-    _snapshot = RecordingSnapshot(
+    final base = RecordingSnapshot(
       status: status,
       sessionId: _sessionId,
       points: resolvedPoints,
       startedAt: resolvedStartedAt,
       finishedAt: _finishedAt,
       latestPosition: resolvedLatest,
-      elapsedTime: elapsedTime,
       markers: List<Marker>.unmodifiable(_markers),
       pauseIntervals: List<PauseInterval>.unmodifiable(_pauseIntervals),
     );
+    _snapshot = _copySnapshotWithElapsed(base, DateTime.now());
 
     if (!_snapshotsController.isClosed) {
       _snapshotsController.add(_snapshot);
     }
+  }
+
+  RecordingSnapshot _copySnapshotWithElapsed(
+    RecordingSnapshot snapshot,
+    DateTime now,
+  ) {
+    final elapsedTime = SessionElapsed.compute(
+      startedAt: snapshot.startedAt,
+      totalPausedDuration: _totalPausedDuration,
+      pauseStartedAt: _pauseStartedAt,
+      finishedAt: _finishedAt,
+      now: now,
+      isIdle: snapshot.status == RecordingStatus.idle,
+      isPaused: snapshot.status == RecordingStatus.paused,
+      isFinished: snapshot.status == RecordingStatus.finished,
+    );
+    return RecordingSnapshot(
+      status: snapshot.status,
+      sessionId: snapshot.sessionId,
+      points: snapshot.points,
+      startedAt: snapshot.startedAt,
+      finishedAt: snapshot.finishedAt,
+      latestPosition: snapshot.latestPosition,
+      elapsedTime: elapsedTime,
+      markers: snapshot.markers,
+      pauseIntervals: snapshot.pauseIntervals,
+    );
   }
 }
 

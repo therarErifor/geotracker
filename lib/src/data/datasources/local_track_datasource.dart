@@ -10,26 +10,26 @@ import 'package:injectable/injectable.dart';
 
 @LazySingleton()
 class LocalTrackDataSource {
-  LocalTrackDataSource(this._db, this._mapper);
+  LocalTrackDataSource(this._database, this._mapper);
 
-  final AppDatabase _db;
+  final AppDatabase _database;
   final TrackMapper _mapper;
 
   Future<void> insertTrack(Track track) async {
-    await _db.transaction(() async {
-      await _db.into(_db.tracks).insert(
+    await _database.transaction(() async {
+      await _database.into(_database.tracks).insert(
             _mapper.trackToCompanion(track),
           );
       final companions = _mapper.pointsToCompanions(track.id, track.points);
       for (final companion in companions) {
-        await _db.into(_db.trackPoints).insert(companion);
+        await _database.into(_database.trackPoints).insert(companion);
       }
       for (final companion in _mapper.stopsToCompanions(track.id, track.stops)) {
-        await _db.into(_db.trackStops).insert(companion);
+        await _database.into(_database.trackStops).insert(companion);
       }
       for (final companion
           in _mapper.markersToCompanions(track.id, track.markers)) {
-        await _db.into(_db.trackMarkers).insert(companion);
+        await _database.into(_database.trackMarkers).insert(companion);
       }
     });
   }
@@ -40,16 +40,16 @@ class LocalTrackDataSource {
     required DateTime startedAt,
     required String recordingStatus,
   }) async {
-    await _db.transaction(() async {
-      final orphans = await (_db.select(_db.tracks)
+    await _database.transaction(() async {
+      final orphans = await (_database.select(_database.tracks)
             ..where((t) => t.finishedAt.isNull()))
           .get();
       for (final orphan in orphans) {
-        await (_db.delete(_db.tracks)..where((t) => t.id.equals(orphan.id)))
+        await (_database.delete(_database.tracks)..where((t) => t.id.equals(orphan.id)))
             .go();
       }
 
-      await _db.into(_db.tracks).insert(
+      await _database.into(_database.tracks).insert(
             TracksCompanion.insert(
               id: id,
               name: name,
@@ -76,7 +76,9 @@ class LocalTrackDataSource {
     double? distanceMeters,
     int? durationMs,
   }) async {
-    await (_db.update(_db.tracks)..where((t) => t.id.equals(id))).write(
+    await (_database.update(_database.tracks)
+          ..where((t) => t.id.equals(id)))
+        .write(
       TracksCompanion(
         recordingStatus: Value(recordingStatus),
         pauseIntervalsJson: Value(
@@ -108,8 +110,8 @@ class LocalTrackDataSource {
       points,
       startOrderIndex: startOrderIndex,
     );
-    await _db.batch((batch) {
-      batch.insertAll(_db.trackPoints, companions);
+    await _database.batch((batch) {
+      batch.insertAll(_database.trackPoints, companions);
     });
   }
 
@@ -117,19 +119,19 @@ class LocalTrackDataSource {
     required String trackId,
     required List<Marker> markers,
   }) async {
-    await _db.transaction(() async {
-      await (_db.delete(_db.trackMarkers)
+    await _database.transaction(() async {
+      await (_database.delete(_database.trackMarkers)
             ..where((m) => m.trackId.equals(trackId)))
           .go();
       for (final companion
           in _mapper.markersToCompanions(trackId, markers)) {
-        await _db.into(_db.trackMarkers).insert(companion);
+        await _database.into(_database.trackMarkers).insert(companion);
       }
     });
   }
 
   Future<RecordingDraft?> getActiveDraft() async {
-    final row = await (_db.select(_db.tracks)
+    final row = await (_database.select(_database.tracks)
           ..where((t) => t.finishedAt.isNull())
           ..limit(1))
         .getSingleOrNull();
@@ -142,11 +144,11 @@ class LocalTrackDataSource {
       return null;
     }
 
-    final pointRows = await (_db.select(_db.trackPoints)
+    final pointRows = await (_database.select(_database.trackPoints)
           ..where((p) => p.trackId.equals(row.id))
           ..orderBy([(p) => OrderingTerm.asc(p.orderIndex)]))
         .get();
-    final markerRows = await (_db.select(_db.trackMarkers)
+    final markerRows = await (_database.select(_database.trackMarkers)
           ..where((m) => m.trackId.equals(row.id))
           ..orderBy([(m) => OrderingTerm.asc(m.timestamp)]))
         .get();
@@ -166,8 +168,8 @@ class LocalTrackDataSource {
   }
 
   Future<void> finalizeTrack(Track track) async {
-    await _db.transaction(() async {
-      await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
+    await _database.transaction(() async {
+      await (_database.update(_database.tracks)..where((t) => t.id.equals(track.id))).write(
             TracksCompanion(
               name: Value(track.name),
               finishedAt: Value(track.finishedAt),
@@ -183,35 +185,34 @@ class LocalTrackDataSource {
             ),
           );
 
-      await (_db.delete(_db.trackStops)
+      await (_database.delete(_database.trackStops)
             ..where((s) => s.trackId.equals(track.id)))
           .go();
       for (final companion
           in _mapper.stopsToCompanions(track.id, track.stops)) {
-        await _db.into(_db.trackStops).insert(companion);
+        await _database.into(_database.trackStops).insert(companion);
       }
 
-      await (_db.delete(_db.trackMarkers)
+      await (_database.delete(_database.trackMarkers)
             ..where((m) => m.trackId.equals(track.id)))
           .go();
       for (final companion
           in _mapper.markersToCompanions(track.id, track.markers)) {
-        await _db.into(_db.trackMarkers).insert(companion);
+        await _database.into(_database.trackMarkers).insert(companion);
       }
 
-      // Points are already checkpointed during recording; replace to match final list.
-      await (_db.delete(_db.trackPoints)
+      await (_database.delete(_database.trackPoints)
             ..where((p) => p.trackId.equals(track.id)))
           .go();
       for (final companion
           in _mapper.pointsToCompanions(track.id, track.points)) {
-        await _db.into(_db.trackPoints).insert(companion);
+        await _database.into(_database.trackPoints).insert(companion);
       }
     });
   }
 
   Future<List<Track>> getTrackSummaries() async {
-    final rows = await (_db.select(_db.tracks)
+    final rows = await (_database.select(_database.tracks)
           ..where((t) => t.finishedAt.isNotNull())
           ..orderBy([(t) => OrderingTerm.desc(t.startedAt)]))
         .get();
@@ -219,22 +220,22 @@ class LocalTrackDataSource {
   }
 
   Future<Track?> getTrackById(String id) async {
-    final row = await (_db.select(_db.tracks)
+    final row = await (_database.select(_database.tracks)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
     if (row == null) {
       return null;
     }
 
-    final pointRows = await (_db.select(_db.trackPoints)
+    final pointRows = await (_database.select(_database.trackPoints)
           ..where((p) => p.trackId.equals(id))
           ..orderBy([(p) => OrderingTerm.asc(p.orderIndex)]))
         .get();
-    final stopRows = await (_db.select(_db.trackStops)
+    final stopRows = await (_database.select(_database.trackStops)
           ..where((s) => s.trackId.equals(id))
           ..orderBy([(s) => OrderingTerm.asc(s.startedAt)]))
         .get();
-    final markerRows = await (_db.select(_db.trackMarkers)
+    final markerRows = await (_database.select(_database.trackMarkers)
           ..where((m) => m.trackId.equals(id))
           ..orderBy([(m) => OrderingTerm.asc(m.timestamp)]))
         .get();
@@ -248,13 +249,13 @@ class LocalTrackDataSource {
   }
 
   Future<void> renameTrack(String id, String name) async {
-    await (_db.update(_db.tracks)..where((t) => t.id.equals(id))).write(
+    await (_database.update(_database.tracks)..where((t) => t.id.equals(id))).write(
       TracksCompanion(name: Value(name)),
     );
   }
 
   Future<void> deleteTrack(String id) async {
-    await (_db.delete(_db.tracks)..where((t) => t.id.equals(id))).go();
+    await (_database.delete(_database.tracks)..where((t) => t.id.equals(id))).go();
   }
 
   Future<void> discardDraft(String id) async {

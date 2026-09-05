@@ -7,7 +7,6 @@ import 'package:geotracker/src/domain/track_point.dart';
 abstract class TrackRepository {
   Future<void> save(Track track);
 
-  /// Completed tracks without points, newest first (drafts excluded).
   Future<List<Track>> getSummaries();
 
   Future<Track?> getById(String id);

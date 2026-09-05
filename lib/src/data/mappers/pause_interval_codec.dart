@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:geotracker/src/domain/pause_interval.dart';
 
-/// JSON codec for draft pause metadata stored on the tracks row.
 class PauseIntervalCodec {
   const PauseIntervalCodec();
 

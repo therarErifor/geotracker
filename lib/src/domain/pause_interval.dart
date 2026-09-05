@@ -1,6 +1,3 @@
-/// A user-initiated recording pause, used as input to stop detection.
-///
-/// Domain-only: no Flutter or plugin types.
 class PauseInterval {
   const PauseInterval({
     required this.startedAt,

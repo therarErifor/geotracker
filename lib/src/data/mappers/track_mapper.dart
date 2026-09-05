@@ -7,7 +7,6 @@ import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 
-/// Maps between domain [Track]/[TrackPoint] and Drift companions/rows.
 class TrackMapper {
   const TrackMapper([this._pauseCodec = const PauseIntervalCodec()]);
 

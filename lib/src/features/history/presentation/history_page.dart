@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geotracker/src/core/app_log.dart';
 import 'package:geotracker/src/dependencies_config.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/features/details/presentation/details_page.dart';
@@ -27,7 +28,16 @@ class _HistoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('История маршрутов')),
+      appBar: AppBar(
+        title: const Text('История маршрутов'),
+        actions: [
+          IconButton(
+            tooltip: 'Поделиться логом',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => _shareLog(context),
+          ),
+        ],
+      ),
       body: BlocBuilder<HistoryCubit, HistoryState>(
         builder: (context, state) {
           return state.when(
@@ -61,6 +71,16 @@ class _HistoryView extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _shareLog(BuildContext context) async {
+    final shared = await AppLog.share();
+    if (shared || !context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Лог пуст или ещё не создан')),
+    );
+  }
 }
 
 class _TrackListTile extends StatelessWidget {
@@ -70,14 +90,14 @@ class _TrackListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avgKmh = TrackFormatters.mpsToKmh(track.averageSpeedMps);
+    final averageKilometersPerHour = TrackFormatters.metersPerSecondToKilometersPerHour(track.averageSpeedMps);
 
     return ListTile(
       title: Text(track.name),
       subtitle: Text(
         '${TrackFormatters.formatDistanceKm(track.distanceMeters)} · '
-        '${TrackFormatters.formatDurationHms(track.duration)} · '
-        '${TrackFormatters.formatSpeedKmh(avgKmh)}',
+        '${TrackFormatters.formatDuration(track.duration)} · '
+        '${TrackFormatters.formatSpeedKmh(averageKilometersPerHour)}',
       ),
       onTap: () async {
         await Navigator.of(context).push(

@@ -1,6 +1,5 @@
 import 'package:geotracker/src/domain/track_point.dart';
 
-/// A position on a track at an arbitrary playback instant.
 class InterpolatedPoint {
   const InterpolatedPoint({
     required this.latitude,
@@ -15,7 +14,6 @@ class InterpolatedPoint {
   final double? speed;
 }
 
-/// Linear interpolation of [TrackPoint]s by timestamp.
 class TrackInterpolation {
   const TrackInterpolation._();
 
@@ -40,16 +38,18 @@ class TrackInterpolation {
         continue;
       }
 
-      final spanMs = end.timestamp.difference(start.timestamp).inMilliseconds;
-      if (spanMs <= 0) {
+      final spanMilliseconds =
+          end.timestamp.difference(start.timestamp).inMilliseconds;
+      if (spanMilliseconds <= 0) {
         return _fromPoint(end);
       }
-      final t = time.difference(start.timestamp).inMilliseconds / spanMs;
+      final progress =
+          time.difference(start.timestamp).inMilliseconds / spanMilliseconds;
       return InterpolatedPoint(
-        latitude: _lerp(start.latitude, end.latitude, t),
-        longitude: _lerp(start.longitude, end.longitude, t),
-        altitude: _lerpNullable(start.altitude, end.altitude, t),
-        speed: _lerpNullable(start.speed, end.speed, t),
+        latitude: _lerp(start.latitude, end.latitude, progress),
+        longitude: _lerp(start.longitude, end.longitude, progress),
+        altitude: _lerpNullable(start.altitude, end.altitude, progress),
+        speed: _lerpNullable(start.speed, end.speed, progress),
       );
     }
 
@@ -65,12 +65,13 @@ class TrackInterpolation {
     );
   }
 
-  static double _lerp(double a, double b, double t) => a + (b - a) * t;
+  static double _lerp(double a, double b, double progress) =>
+      a + (b - a) * progress;
 
-  static double? _lerpNullable(double? a, double? b, double t) {
+  static double? _lerpNullable(double? a, double? b, double progress) {
     if (a == null && b == null) {
       return null;
     }
-    return _lerp(a ?? b!, b ?? a!, t);
+    return _lerp(a ?? b!, b ?? a!, progress);
   }
 }

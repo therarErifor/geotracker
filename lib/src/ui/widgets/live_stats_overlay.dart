@@ -35,7 +35,7 @@ class LiveStatsOverlay extends StatelessWidget {
             const SizedBox(width: 16),
             _StatItem(
               label: 'Время',
-              value: TrackFormatters.formatDurationHms(elapsedTime),
+              value: TrackFormatters.formatDuration(elapsedTime),
             ),
             const SizedBox(width: 16),
             _StatItem(

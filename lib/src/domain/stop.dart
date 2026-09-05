@@ -1,6 +1,3 @@
-/// An interval when the user was not moving.
-///
-/// Domain-only: no Flutter or plugin types.
 class Stop {
   const Stop({
     required this.startedAt,

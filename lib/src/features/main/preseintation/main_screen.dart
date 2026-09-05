@@ -11,6 +11,7 @@ import 'package:geotracker/src/ui/widgets/tracking_buttons.dart';
 import 'package:geotracker/src/ui/widgets/widgets_export.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'locate_button_kind.dart';
 import 'main_cubit.dart';
 import 'main_state.dart';
 
@@ -137,57 +138,21 @@ class MainScreen extends StatelessWidget {
     MainCubit cubit,
     LatLng point,
   ) async {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final submitted = await showDialog<bool>(
+    final result = await showDialog<_MarkerDraft>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Новый маркер'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Название'),
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Описание'),
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: 2,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Сохранить'),
-            ),
-          ],
-        );
-      },
+      builder: (dialogContext) => const _AddMarkerDialog(),
     );
 
-    if (submitted != true || !context.mounted) {
-      titleController.dispose();
-      descriptionController.dispose();
+    if (result == null || !context.mounted) {
       return;
     }
 
     final error = cubit.addMarker(
       latitude: point.latitude,
       longitude: point.longitude,
-      title: titleController.text,
-      description: descriptionController.text,
+      title: result.title,
+      description: result.description,
     );
-    titleController.dispose();
-    descriptionController.dispose();
     if (error != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
     }
@@ -256,20 +221,19 @@ class MainScreen extends StatelessWidget {
             ),
           ),
         ),
-        if (showRecenterButton)
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 80),
-              child: RecenterButton(onPressed: cubit.recenterCamera),
-            ),
-          ),
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: NavigationButtons(
             zoomIn: cubit.zoomIn,
             zoomOut: cubit.zoomOut,
-            findMe: cubit.findMe,
+            locateKind: showRecenterButton
+                ? (trackingStatus == TrackingStatus.tracking
+                    ? LocateButtonKind.followUser
+                    : LocateButtonKind.findMe)
+                : LocateButtonKind.hidden,
+            onLocate: trackingStatus == TrackingStatus.tracking
+                ? cubit.recenterCamera
+                : cubit.findMe,
           ),
         ),
         Align(
@@ -310,6 +274,76 @@ class MainScreen extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarkerDraft {
+  const _MarkerDraft({
+    required this.title,
+    required this.description,
+  });
+
+  final String title;
+  final String description;
+}
+
+class _AddMarkerDialog extends StatefulWidget {
+  const _AddMarkerDialog();
+
+  @override
+  State<_AddMarkerDialog> createState() => _AddMarkerDialogState();
+}
+
+class _AddMarkerDialogState extends State<_AddMarkerDialog> {
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Новый маркер'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Название'),
+              textCapitalization: TextCapitalization.sentences,
+              autofocus: true,
+            ),
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: 'Описание'),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(
+            _MarkerDraft(
+              title: _titleController.text.trim(),
+              description: _descriptionController.text.trim(),
+            ),
+          ),
+          child: const Text('Сохранить'),
         ),
       ],
     );

@@ -14,10 +14,7 @@ class Tracks extends Table {
   RealColumn get maxSpeedMps => real().withDefault(const Constant(0))();
   RealColumn get elevationGainMeters => real().withDefault(const Constant(0))();
 
-  /// Draft session status: recording | paused | finished. Null when completed.
   TextColumn get recordingStatus => text().nullable()();
-
-  /// JSON blob: pause intervals + open pause + totalPausedMs for kill recovery.
   TextColumn get pauseIntervalsJson => text().nullable()();
 
   @override
