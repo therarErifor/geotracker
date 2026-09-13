@@ -1,4 +1,5 @@
 import 'package:geotracker/src/domain/marker.dart';
+import 'package:geotracker/src/domain/pause_interval.dart';
 import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 
@@ -18,6 +19,7 @@ class Track {
     this.elevationGainMeters = 0,
     this.stops = const [],
     this.markers = const [],
+    this.pauseIntervals = const [],
   });
 
   final String id;
@@ -34,4 +36,5 @@ class Track {
   final List<TrackPoint> points;
   final List<Stop> stops;
   final List<Marker> markers;
+  final List<PauseInterval> pauseIntervals;
 }

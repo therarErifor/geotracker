@@ -57,6 +57,7 @@ class TrackRecordingService {
   RecordingSnapshot _snapshot = const RecordingSnapshot();
   Duration _totalPausedDuration = Duration.zero;
   DateTime? _pauseStartedAt;
+  int? _pointCountAtPause;
   DateTime? _finishedAt;
   List<Marker> _markers = const [];
   List<PauseInterval> _pauseIntervals = const [];
@@ -90,6 +91,7 @@ class TrackRecordingService {
     if (isNewSession) {
       _totalPausedDuration = Duration.zero;
       _pauseStartedAt = null;
+      _pointCountAtPause = null;
       _finishedAt = null;
       _markers = const [];
       _pauseIntervals = const [];
@@ -150,8 +152,8 @@ class TrackRecordingService {
       return;
     }
 
-    await _cancelPositionStream();
     _pauseStartedAt = DateTime.now();
+    _pointCountAtPause = _snapshot.points.length;
     _emitSnapshot(
       status: RecordingStatus.paused,
       points: _snapshot.points,
@@ -204,6 +206,7 @@ class TrackRecordingService {
     await _cancelPositionStream();
     _totalPausedDuration = Duration.zero;
     _pauseStartedAt = null;
+    _pointCountAtPause = null;
     _finishedAt = null;
     _markers = const [];
     _pauseIntervals = const [];
@@ -231,6 +234,9 @@ class TrackRecordingService {
     _pauseIntervals = List<PauseInterval>.from(draft.pauseIntervals);
     _totalPausedDuration = draft.totalPausedDuration;
     _pauseStartedAt = draft.openPauseStartedAt;
+    _pointCountAtPause = draft.openPauseStartedAt == null
+        ? null
+        : draft.track.points.length;
     _finishedAt = status == RecordingStatus.finished
         ? _finishedAtFromDraft(draft)
         : null;
@@ -245,7 +251,8 @@ class TrackRecordingService {
           : draft.track.points.last,
     );
 
-    if (status == RecordingStatus.recording) {
+    if (status == RecordingStatus.recording ||
+        status == RecordingStatus.paused) {
       await _geolocationService.requestAlwaysPermission();
       await _ensurePositionStream();
     }
@@ -293,10 +300,12 @@ class TrackRecordingService {
           finishedAt: endedAt,
           latitude: position.latitude,
           longitude: position.longitude,
+          pointCountAtStart: _pointCountAtPause ?? _snapshot.points.length,
         ),
       ];
     }
     _pauseStartedAt = null;
+    _pointCountAtPause = null;
   }
 
   Future<void> _ensurePositionStream() async {

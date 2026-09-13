@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geotracker/src/data/datasources/local_track_datasource.dart';
 import 'package:geotracker/src/data/local/app_database.dart';
 import 'package:geotracker/src/data/mappers/track_mapper.dart';
+import 'package:geotracker/src/domain/pause_interval.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 
@@ -64,6 +65,13 @@ void main() {
     expect(draft!.track.points, hasLength(1));
 
     final finishedAt = startedAt.add(const Duration(minutes: 5));
+    final pause = PauseInterval(
+      startedAt: startedAt.add(const Duration(minutes: 1)),
+      finishedAt: startedAt.add(const Duration(minutes: 2)),
+      latitude: 55.75,
+      longitude: 37.62,
+      pointCountAtStart: 1,
+    );
     await dataSource.finalizeTrack(
       Track(
         id: 'draft-2',
@@ -73,10 +81,15 @@ void main() {
         duration: const Duration(minutes: 5),
         distanceMeters: 100,
         points: [point],
+        pauseIntervals: [pause],
       ),
     );
 
     expect(await dataSource.getActiveDraft(), isNull);
+    final saved = await dataSource.getTrackById('draft-2');
+    expect(saved!.pauseIntervals, hasLength(1));
+    expect(saved.pauseIntervals.first.startedAt, pause.startedAt);
+    expect(saved.pauseIntervals.first.pointCountAtStart, 1);
     final summaries = await dataSource.getTrackSummaries();
     expect(summaries, hasLength(1));
     expect(summaries.first.id, 'draft-2');

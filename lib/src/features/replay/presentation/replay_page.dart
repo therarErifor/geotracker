@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geotracker/src/dependencies_config.dart';
+import 'package:geotracker/src/domain/split_track_points_by_pauses.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_calculations.dart';
 import 'package:geotracker/src/domain/track_interpolation.dart';
@@ -125,6 +126,10 @@ class _ReplayLoaded extends StatelessWidget {
                 initialZoom: 16,
                 userPosition: userPosition,
                 recordingPoints: track.points,
+                polylineSegments: splitTrackPointsByPauses(
+                  track.points,
+                  track.pauseIntervals,
+                ),
                 stops: track.stops,
                 trackMarkers: visibleMarkers,
                 showStartEndMarkers: true,

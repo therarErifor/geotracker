@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geotracker/src/dependencies_config.dart';
 import 'package:geotracker/src/domain/marker.dart';
+import 'package:geotracker/src/domain/split_track_points_by_pauses.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:geotracker/src/entities/error_type.dart';
 import 'package:geotracker/src/entities/tracking_status.dart';
@@ -103,8 +104,6 @@ class MainScreen extends StatelessWidget {
       loaded: (
         trackingStatus,
         userPosition,
-        initialMapCenter,
-        initialMapZoom,
         recordingPoints,
         distanceMeters,
         elapsedTime,
@@ -119,8 +118,6 @@ class MainScreen extends StatelessWidget {
             context,
             trackingStatus: trackingStatus,
             userPosition: userPosition,
-            initialMapCenter: initialMapCenter,
-            initialMapZoom: initialMapZoom,
             recordingPoints: recordingPoints,
             distanceMeters: distanceMeters,
             elapsedTime: elapsedTime,
@@ -162,8 +159,6 @@ class MainScreen extends StatelessWidget {
     BuildContext context, {
     required TrackingStatus trackingStatus,
     required UserPosition? userPosition,
-    required LatLng initialMapCenter,
-    required double initialMapZoom,
     required List<TrackPoint> recordingPoints,
     required double distanceMeters,
     required Duration elapsedTime,
@@ -181,10 +176,14 @@ class MainScreen extends StatelessWidget {
       children: [
         Map(
           controller: cubit.mapController,
-          initialCenter: initialMapCenter,
-          initialZoom: initialMapZoom,
+          initialCenter: cubit.mapInitialCenter,
+          initialZoom: cubit.mapInitialZoom,
           userPosition: userPosition,
           recordingPoints: recordingPoints,
+          polylineSegments: splitTrackPointsByPauses(
+            recordingPoints,
+            cubit.pauseIntervals,
+          ),
           trackMarkers: trackMarkers,
           onCameraChanged: cubit.onMapCameraChanged,
           onTap: canPlaceMarker

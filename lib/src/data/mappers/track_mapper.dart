@@ -107,6 +107,7 @@ class TrackMapper {
     List<Stop> stops = const [],
     List<Marker> markers = const [],
   }) {
+    final pauseMeta = _pauseCodec.decode(row.pauseIntervalsJson);
     return Track(
       id: row.id,
       name: row.name,
@@ -122,6 +123,7 @@ class TrackMapper {
       points: points,
       stops: stops,
       markers: markers,
+      pauseIntervals: pauseMeta.intervals,
     );
   }
 

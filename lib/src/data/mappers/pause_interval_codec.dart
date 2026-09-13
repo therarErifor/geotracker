@@ -20,6 +20,8 @@ class PauseIntervalCodec {
             'finishedAt': interval.finishedAt.toIso8601String(),
             'latitude': interval.latitude,
             'longitude': interval.longitude,
+            if (interval.pointCountAtStart != null)
+              'pointCountAtStart': interval.pointCountAtStart,
           },
       ],
     });
@@ -71,6 +73,7 @@ class PauseIntervalCodec {
             finishedAt: finishedAt,
             latitude: latitude,
             longitude: longitude,
+            pointCountAtStart: (map['pointCountAtStart'] as num?)?.toInt(),
           ),
         );
       }

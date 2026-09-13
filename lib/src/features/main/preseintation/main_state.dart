@@ -1,8 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:geotracker/src/domain/marker.dart';
 import 'package:geotracker/src/domain/track_point.dart';
-import 'package:latlong2/latlong.dart';
-
 import '../../../entities/tracking_status.dart';
 import '../../../entities/user_position.dart';
 
@@ -15,8 +13,6 @@ abstract class MainState with _$MainState {
   const factory MainState.loaded({
     required TrackingStatus trackingStatus,
     required UserPosition? userPosition,
-    required LatLng initialMapCenter,
-    @Default(16.0) double initialMapZoom,
     @Default(<TrackPoint>[]) List<TrackPoint> recordingPoints,
     @Default(0.0) double distanceMeters,
     @Default(Duration.zero) Duration elapsedTime,

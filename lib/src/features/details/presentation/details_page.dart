@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geotracker/src/dependencies_config.dart';
+import 'package:geotracker/src/domain/split_track_points_by_pauses.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:geotracker/src/features/replay/presentation/replay_page.dart';
@@ -116,6 +117,10 @@ class _DetailsViewState extends State<_DetailsView> {
             initialCenter: center,
             initialZoom: 14,
             recordingPoints: track.points,
+            polylineSegments: splitTrackPointsByPauses(
+              track.points,
+              track.pauseIntervals,
+            ),
             stops: track.stops,
             trackMarkers: track.markers,
             showStartEndMarkers: true,

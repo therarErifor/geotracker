@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart' hide Marker;
 import 'package:geotracker/src/core/app_log.dart';
 import 'package:geotracker/src/data/repositories/track_repository.dart';
 import 'package:geotracker/src/domain/marker.dart';
+import 'package:geotracker/src/domain/pause_interval.dart';
 import 'package:geotracker/src/domain/stop_detection.dart';
 import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_calculations.dart';
@@ -47,11 +48,20 @@ class MainCubit extends Cubit<MainState> {
 
   MapController get mapController => _mapController;
 
+  List<PauseInterval> get pauseIntervals => _pauseIntervals;
+
+  late final LatLng _mapInitialCenter;
+  late final double _mapInitialZoom;
+
+  LatLng get mapInitialCenter => _mapInitialCenter;
+  double get mapInitialZoom => _mapInitialZoom;
+
   double _currentZoom = 16;
   late LatLng _currentMapCenter;
   UserPosition? _userPosition;
   TrackingStatus _trackingStatus = TrackingStatus.rest;
   List<TrackPoint> _recordingPoints = const [];
+  List<PauseInterval> _pauseIntervals = const [];
   List<Marker> _trackMarkers = const [];
   double _distanceMeters = 0;
   Duration _elapsedTime = Duration.zero;
@@ -78,6 +88,8 @@ class MainCubit extends Cubit<MainState> {
       }
       var position = result.data!;
       _currentMapCenter = LatLng(position.latitude, position.longitude);
+      _mapInitialCenter = _currentMapCenter;
+      _mapInitialZoom = _currentZoom;
       _userPosition = UserPosition(
         currentPosition: _currentMapCenter,
         heading: position.heading,
@@ -88,8 +100,11 @@ class MainCubit extends Cubit<MainState> {
     } catch (e, stackTrace) {
       AppLog.e('MainCubit.init fallback map center', e, stackTrace);
       _currentMapCenter = LatLng(58.021688, 56.227984);
+      _currentZoom = _currentZoom - 14;
+      _mapInitialCenter = _currentMapCenter;
+      _mapInitialZoom = _currentZoom;
       await _restoreSessionIfNeeded();
-      _emitLoaded(initialZoom: _currentZoom - 14);
+      _emitLoaded();
     }
   }
 
@@ -119,6 +134,7 @@ class MainCubit extends Cubit<MainState> {
 
   void _applyRestoredSnapshot(RecordingSnapshot snapshot) {
     _recordingPoints = snapshot.points;
+    _pauseIntervals = snapshot.pauseIntervals;
     _trackMarkers = snapshot.markers;
     _elapsedTime = snapshot.elapsedTime;
     _distanceMeters = TrackCalculations.totalDistanceMeters(snapshot.points);
@@ -164,6 +180,7 @@ class MainCubit extends Cubit<MainState> {
     }
 
     _recordingPoints = snapshot.points;
+    _pauseIntervals = snapshot.pauseIntervals;
     _trackMarkers = snapshot.markers;
     _elapsedTime = snapshot.elapsedTime;
     _distanceMeters = TrackCalculations.totalDistanceMeters(snapshot.points);
@@ -186,7 +203,9 @@ class MainCubit extends Cubit<MainState> {
     );
     _averageSpeedKmh = TrackFormatters.metersPerSecondToKilometersPerHour(averageMetersPerSecond);
 
-    if (_trackingStatus == TrackingStatus.tracking && _cameraFollowEnabled) {
+    if (_cameraFollowEnabled &&
+        (_trackingStatus == TrackingStatus.tracking ||
+            _trackingStatus == TrackingStatus.pause)) {
       _followUserPosition();
     }
 
@@ -310,6 +329,7 @@ class MainCubit extends Cubit<MainState> {
       points: List.unmodifiable(snapshot.points),
       stops: stops,
       markers: List.unmodifiable(snapshot.markers),
+      pauseIntervals: List.unmodifiable(snapshot.pauseIntervals),
     );
 
     try {
@@ -403,6 +423,7 @@ class MainCubit extends Cubit<MainState> {
 
   void _resetRecordingUiState() {
     _recordingPoints = const [];
+    _pauseIntervals = const [];
     _trackMarkers = const [];
     _distanceMeters = 0;
     _elapsedTime = Duration.zero;
@@ -440,21 +461,17 @@ class MainCubit extends Cubit<MainState> {
     if (position == null) {
       return;
     }
-    _currentMapCenter = position;
+    if (!animated && isMapCameraAnimating(_mapController)) {
+      return;
+    }
     moveMapCamera(_mapController, position, _currentZoom, animated: animated);
   }
 
-  void _emitLoaded({double? initialZoom}) {
-    if (initialZoom != null) {
-      _currentZoom = initialZoom;
-    }
-
+  void _emitLoaded() {
     emit(
       MainState.loaded(
         trackingStatus: _trackingStatus,
         userPosition: _userPosition,
-        initialMapCenter: _currentMapCenter,
-        initialMapZoom: _currentZoom,
         recordingPoints: _recordingPoints,
         distanceMeters: _distanceMeters,
         elapsedTime: _elapsedTime,

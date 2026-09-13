@@ -5,6 +5,10 @@ import 'package:latlong2/latlong.dart';
 const Duration mapCameraAnimationDuration = Duration(milliseconds: 250);
 const Curve mapCameraAnimationCurve = Curves.easeOutCubic;
 
+bool isMapCameraAnimating(MapController controller) {
+  return (controller as MapControllerImpl).isAnimating;
+}
+
 void moveMapCamera(
   MapController controller,
   LatLng center,

@@ -19,6 +19,7 @@ class Map extends StatelessWidget {
     required this.initialZoom,
     this.userPosition,
     this.recordingPoints = const [],
+    this.polylineSegments = const [],
     this.stops = const [],
     this.trackMarkers = const [],
     this.showStartEndMarkers = false,
@@ -32,6 +33,7 @@ class Map extends StatelessWidget {
   final double initialZoom;
   final UserPosition? userPosition;
   final List<TrackPoint> recordingPoints;
+  final List<List<TrackPoint>> polylineSegments;
   final List<Stop> stops;
   final List<domain.Marker> trackMarkers;
   final bool showStartEndMarkers;
@@ -41,9 +43,21 @@ class Map extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final polylinePoints = recordingPoints
-        .map((point) => LatLng(point.latitude, point.longitude))
-        .toList();
+    final segments = polylineSegments.isNotEmpty
+        ? polylineSegments
+        : (recordingPoints.isEmpty
+            ? const <List<TrackPoint>>[]
+            : [recordingPoints]);
+    final polylineLatLngs = [
+      for (final segment in segments)
+        [
+          for (final point in segment) LatLng(point.latitude, point.longitude),
+        ],
+    ];
+    final startEndPoints = [
+      for (final segment in polylineLatLngs)
+        ...segment,
+    ];
 
     return FlutterMap(
       mapController: controller,
@@ -68,29 +82,31 @@ class Map extends StatelessWidget {
           source: Text('OpenStreetMap, CARTO'),
         ),
 
-        if (polylinePoints.length >= 2)
+        if (polylineLatLngs.any((segment) => segment.length >= 2))
           PolylineLayer(
             polylines: [
-              Polyline(
-                points: polylinePoints,
-                strokeWidth: 4,
-                color: Colors.blue,
-              ),
+              for (final segment in polylineLatLngs)
+                if (segment.length >= 2)
+                  Polyline(
+                    points: segment,
+                    strokeWidth: 4,
+                    color: Colors.blue,
+                  ),
             ],
           ),
 
-        if (showStartEndMarkers && polylinePoints.isNotEmpty)
+        if (showStartEndMarkers && startEndPoints.isNotEmpty)
           MarkerLayer(
             markers: [
               Marker(
-                point: polylinePoints.first,
+                point: startEndPoints.first,
                 width: 36,
                 height: 36,
                 child: const Icon(Icons.flag, color: Colors.green),
               ),
-              if (polylinePoints.length > 1)
+              if (startEndPoints.length > 1)
                 Marker(
-                  point: polylinePoints.last,
+                  point: startEndPoints.last,
                   width: 36,
                   height: 36,
                   child: const Icon(Icons.sports_score, color: Colors.red),

@@ -42,10 +42,13 @@ class ReplayCubit extends Cubit<ReplayState> {
         return;
       }
       _track = track;
-      _gapPauses = PlaybackTimeline.gapIntervals(
-        stops: track.stops,
-        points: track.points,
-      );
+      _gapPauses = [
+        ...track.pauseIntervals,
+        ...PlaybackTimeline.gapIntervals(
+          stops: track.stops,
+          points: track.points,
+        ),
+      ];
       _playbackTime = Duration.zero;
       _speed = 1;
       _isPlaying = false;

@@ -181,7 +181,14 @@ class LocalTrackDataSource {
               maxSpeedMps: Value(track.maxSpeedMps),
               elevationGainMeters: Value(track.elevationGainMeters),
               recordingStatus: const Value(null),
-              pauseIntervalsJson: const Value(null),
+              pauseIntervalsJson: Value(
+                track.pauseIntervals.isEmpty
+                    ? null
+                    : _mapper.encodePauseMeta(
+                        intervals: track.pauseIntervals,
+                        totalPausedDuration: Duration.zero,
+                      ),
+              ),
             ),
           );
 
