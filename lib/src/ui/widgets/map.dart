@@ -3,9 +3,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geotracker/src/domain/marker.dart' as domain;
 import 'package:geotracker/src/domain/stop.dart';
 import 'package:geotracker/src/domain/track_point.dart';
+import 'package:geotracker/src/entities/user_position.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../entities/user_position.dart';
+import 'animated_user_marker_layer.dart';
+import 'map_camera_motion.dart';
 
 const urlTemplate =
     'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -18,6 +20,8 @@ class Map extends StatelessWidget {
     required this.initialCenter,
     required this.initialZoom,
     this.userPosition,
+    this.animateUserMarker = false,
+    this.userMarkerAnimationDuration = mapGpsFollowAnimationDuration,
     this.recordingPoints = const [],
     this.polylineSegments = const [],
     this.stops = const [],
@@ -32,6 +36,8 @@ class Map extends StatelessWidget {
   final LatLng initialCenter;
   final double initialZoom;
   final UserPosition? userPosition;
+  final bool animateUserMarker;
+  final Duration userMarkerAnimationDuration;
   final List<TrackPoint> recordingPoints;
   final List<List<TrackPoint>> polylineSegments;
   final List<Stop> stops;
@@ -144,16 +150,10 @@ class Map extends StatelessWidget {
           ),
 
         if (userPosition != null)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: userPosition!.currentPosition,
-                child: Transform.rotate(
-                  angle: userPosition!.heading * (3.14159265 / 180),
-                  child: const Icon(Icons.navigation, color: Colors.red),
-                ),
-              ),
-            ],
+          AnimatedUserMarkerLayer(
+            userPosition: userPosition!,
+            animatePosition: animateUserMarker,
+            animationDuration: userMarkerAnimationDuration,
           ),
       ],
     );

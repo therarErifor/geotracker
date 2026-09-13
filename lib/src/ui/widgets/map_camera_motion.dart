@@ -4,6 +4,9 @@ import 'package:latlong2/latlong.dart';
 
 const Duration mapCameraAnimationDuration = Duration(milliseconds: 250);
 const Curve mapCameraAnimationCurve = Curves.easeOutCubic;
+const Duration mapGpsFollowAnimationDuration = Duration(milliseconds: 300);
+const Duration mapRestFollowAnimationDuration = Duration(milliseconds: 1800);
+const Curve mapGpsFollowAnimationCurve = Curves.linear;
 
 bool isMapCameraAnimating(MapController controller) {
   return (controller as MapControllerImpl).isAnimating;

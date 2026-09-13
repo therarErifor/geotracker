@@ -10,6 +10,7 @@ import 'package:geotracker/src/entities/user_position.dart';
 import 'package:geotracker/src/features/history/presentation/history_page.dart';
 import 'package:geotracker/src/ui/widgets/tracking_buttons.dart';
 import 'package:geotracker/src/ui/widgets/widgets_export.dart';
+import 'package:geotracker/src/ui/widgets/map_camera_motion.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'locate_button_kind.dart';
@@ -179,6 +180,11 @@ class MainScreen extends StatelessWidget {
           initialCenter: cubit.mapInitialCenter,
           initialZoom: cubit.mapInitialZoom,
           userPosition: userPosition,
+          animateUserMarker: true,
+          userMarkerAnimationDuration:
+              trackingStatus == TrackingStatus.rest
+              ? mapRestFollowAnimationDuration
+              : mapGpsFollowAnimationDuration,
           recordingPoints: recordingPoints,
           polylineSegments: splitTrackPointsByPauses(
             recordingPoints,

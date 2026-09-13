@@ -143,6 +143,20 @@ void main() {
       );
     });
   });
+
+  group('TrackCalculations.bearingDegrees', () {
+    test('returns 0 for due north', () {
+      final from = _point(0, 0, DateTime.utc(2026, 1, 1));
+      final to = _point(0.001, 0, DateTime.utc(2026, 1, 1));
+      expect(TrackCalculations.bearingDegrees(from, to), closeTo(0, 0.5));
+    });
+
+    test('returns 90 for due east at equator', () {
+      final from = _point(0, 0, DateTime.utc(2026, 1, 1));
+      final to = _point(0, 0.001, DateTime.utc(2026, 1, 1));
+      expect(TrackCalculations.bearingDegrees(from, to), closeTo(90, 0.5));
+    });
+  });
 }
 
 TrackPoint _point(

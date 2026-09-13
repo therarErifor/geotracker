@@ -7,6 +7,17 @@ class TrackCalculations {
 
   static const double _earthRadiusMeters = 6371000;
 
+  static double bearingDegrees(TrackPoint from, TrackPoint to) {
+    final lat1 = _toRadians(from.latitude);
+    final lat2 = _toRadians(to.latitude);
+    final dLon = _toRadians(to.longitude - from.longitude);
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+    final degrees = _toDegrees(math.atan2(y, x));
+    return (degrees + 360) % 360;
+  }
+
   static double distanceBetween(TrackPoint a, TrackPoint b) {
     final lat1 = _toRadians(a.latitude);
     final lat2 = _toRadians(b.latitude);
@@ -70,4 +81,6 @@ class TrackCalculations {
   }
 
   static double _toRadians(double degrees) => degrees * math.pi / 180;
+
+  static double _toDegrees(double radians) => radians * 180 / math.pi;
 }

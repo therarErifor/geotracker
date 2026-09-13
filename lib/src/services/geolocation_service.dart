@@ -1,14 +1,39 @@
 import 'dart:io' show Platform;
 
 import 'package:geolocator/geolocator.dart';
+import 'package:geotracker/src/domain/course.dart';
 import 'package:geotracker/src/entities/error_type.dart';
+import 'package:geotracker/src/entities/geo_fix.dart';
 import 'package:injectable/injectable.dart';
 
 import '../entities/request_result.dart';
 
 @singleton
 class GeolocationService {
-  Future<RequestResult<Position?>> getCurrentPositionAsync() async {
+  static double? courseDegreesFrom(Position position) {
+    if (!position.hasHeading || position.heading < 0) {
+      return null;
+    }
+    if (position.hasHeadingAccuracy &&
+        (position.headingAccuracy < 0 || position.headingAccuracy > 45)) {
+      return null;
+    }
+    if (position.speed < Course.minSpeedMps) {
+      return null;
+    }
+    return position.heading % 360;
+  }
+
+  static GeoFix toGeoFix(Position position) {
+    return GeoFix(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      speedMps: position.speed >= 0 ? position.speed : null,
+      courseDegrees: courseDegreesFrom(position),
+    );
+  }
+
+  Future<RequestResult<GeoFix?>> getCurrentPositionAsync() async {
     var result = await _requestPermissionsAndEnableServiceAsync();
     if (result.error != null) {
       return RequestResult.fromError(result.error!);
@@ -16,7 +41,7 @@ class GeolocationService {
     var position = await Geolocator.getLastKnownPosition();
     position ??= await Geolocator.getCurrentPosition();
 
-    return RequestResult.fromData(position);
+    return RequestResult.fromData(toGeoFix(position));
   }
 
   Future<bool> hasPermissionsAsync() async {
@@ -48,12 +73,33 @@ class GeolocationService {
     await Geolocator.openAppSettings();
   }
 
-  Stream<Position> watchPosition() {
-    const locationSettings = LocationSettings(
+  Stream<GeoFix> watchPosition() {
+    return Geolocator.getPositionStream(
+      locationSettings: _displayLocationSettings(),
+    ).map(toGeoFix);
+  }
+
+  LocationSettings _displayLocationSettings() {
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 8,
+        intervalDuration: const Duration(seconds: 2),
+      );
+    }
+    if (Platform.isIOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 8,
+        activityType: ActivityType.fitness,
+        pauseLocationUpdatesAutomatically: false,
+        allowBackgroundLocationUpdates: false,
+      );
+    }
+    return const LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
+      distanceFilter: 8,
     );
-    return Geolocator.getPositionStream(locationSettings: locationSettings);
   }
 
   Stream<Position> watchRecordingPosition() {

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart' hide Marker;
 import 'package:geotracker/src/core/app_log.dart';
 import 'package:geotracker/src/data/repositories/track_repository.dart';
+import 'package:geotracker/src/domain/course.dart';
 import 'package:geotracker/src/domain/marker.dart';
 import 'package:geotracker/src/domain/pause_interval.dart';
 import 'package:geotracker/src/domain/stop_detection.dart';
@@ -11,6 +12,7 @@ import 'package:geotracker/src/domain/track.dart';
 import 'package:geotracker/src/domain/track_calculations.dart';
 import 'package:geotracker/src/domain/track_point.dart';
 import 'package:geotracker/src/entities/error_type.dart';
+import 'package:geotracker/src/entities/geo_fix.dart';
 import 'package:geotracker/src/entities/tracking_status.dart';
 import 'package:geotracker/src/entities/user_position.dart';
 import 'package:geotracker/src/services/geolocation_service.dart';
@@ -23,6 +25,8 @@ import 'package:uuid/uuid.dart';
 
 import 'locate_button_kind.dart';
 import 'main_state.dart';
+
+enum _CameraFollowStyle { instant, smooth, locate }
 
 @Injectable()
 class MainCubit extends Cubit<MainState> {
@@ -68,10 +72,13 @@ class MainCubit extends Cubit<MainState> {
   double? _currentSpeedKmh;
   double _averageSpeedKmh = 0;
   bool _cameraFollowEnabled = true;
+  bool _locateRecenterAnimating = false;
   String? _saveError;
   String? _sessionInterruptedMessage;
   StreamSubscription<RecordingSnapshot>? _recordingSubscription;
+  StreamSubscription<GeoFix>? _restPositionSubscription;
   Timer? _elapsedTimer;
+  Timer? _locateRecenterAnimationTimer;
 
   Future<void> init() async {
     try {
@@ -90,12 +97,18 @@ class MainCubit extends Cubit<MainState> {
       _currentMapCenter = LatLng(position.latitude, position.longitude);
       _mapInitialCenter = _currentMapCenter;
       _mapInitialZoom = _currentZoom;
-      _userPosition = UserPosition(
-        currentPosition: _currentMapCenter,
-        heading: position.heading,
+      _applyGpsFix(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        gpsHeading: position.courseDegrees,
+        speedMps: position.speedMps,
+        minDistanceMeters: Course.restMinDistanceMeters,
       );
       await _restoreSessionIfNeeded();
       AppLog.i('MainCubit.init ok lat=${position.latitude} lon=${position.longitude}');
+      if (_trackingStatus == TrackingStatus.rest) {
+        _startRestPositionWatch();
+      }
       _emitLoaded();
     } catch (e, stackTrace) {
       AppLog.e('MainCubit.init fallback map center', e, stackTrace);
@@ -104,6 +117,9 @@ class MainCubit extends Cubit<MainState> {
       _mapInitialCenter = _currentMapCenter;
       _mapInitialZoom = _currentZoom;
       await _restoreSessionIfNeeded();
+      if (_trackingStatus == TrackingStatus.rest) {
+        _startRestPositionWatch();
+      }
       _emitLoaded();
     }
   }
@@ -148,9 +164,18 @@ class MainCubit extends Cubit<MainState> {
 
     final latest = snapshot.latestPosition ?? snapshot.lastAcceptedPoint;
     if (latest != null) {
+      final previousPoint = snapshot.points.length >= 2
+          ? snapshot.points[snapshot.points.length - 2]
+          : null;
       _userPosition = UserPosition(
         currentPosition: LatLng(latest.latitude, latest.longitude),
-        heading: _userPosition?.heading ?? 0,
+        heading: Course.resolveCourseDegrees(
+          gpsHeading: snapshot.courseDegrees,
+          speedMps: latest.speed,
+          from: previousPoint,
+          to: latest,
+          minDistanceMeters: Course.recordingMinDistanceMeters,
+        ),
         speed: latest.speed,
       );
       _currentMapCenter = _userPosition!.currentPosition;
@@ -187,10 +212,12 @@ class MainCubit extends Cubit<MainState> {
 
     final latest = snapshot.latestPosition;
     if (latest != null) {
-      _userPosition = UserPosition(
-        currentPosition: LatLng(latest.latitude, latest.longitude),
-        heading: _userPosition?.heading ?? 0,
-        speed: latest.speed,
+      _applyGpsFix(
+        latitude: latest.latitude,
+        longitude: latest.longitude,
+        gpsHeading: snapshot.courseDegrees,
+        speedMps: latest.speed,
+        minDistanceMeters: Course.recordingMinDistanceMeters,
       );
       _currentSpeedKmh = latest.speed != null
           ? TrackFormatters.metersPerSecondToKilometersPerHour(latest.speed!)
@@ -203,10 +230,8 @@ class MainCubit extends Cubit<MainState> {
     );
     _averageSpeedKmh = TrackFormatters.metersPerSecondToKilometersPerHour(averageMetersPerSecond);
 
-    if (_cameraFollowEnabled &&
-        (_trackingStatus == TrackingStatus.tracking ||
-            _trackingStatus == TrackingStatus.pause)) {
-      _followUserPosition();
+    if (_cameraFollowEnabled && _isActiveRecordingFollow()) {
+      _followUserPosition(style: _CameraFollowStyle.smooth);
     }
 
     _emitLoaded();
@@ -229,12 +254,18 @@ class MainCubit extends Cubit<MainState> {
       if (result.data != null) {
         var position = result.data!;
 
-        _userPosition = UserPosition(
-          currentPosition: LatLng(position.latitude, position.longitude),
-          heading: position.heading,
+        _applyGpsFix(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          gpsHeading: position.courseDegrees,
+          speedMps: position.speedMps,
+          minDistanceMeters: _trackingStatus == TrackingStatus.rest
+              ? Course.restMinDistanceMeters
+              : Course.recordingMinDistanceMeters,
         );
         _cameraFollowEnabled = true;
-        _followUserPosition(animated: true);
+        _beginLocateRecenterAnimation();
+        _followUserPosition(style: _CameraFollowStyle.locate);
       }
       if (result.error == ErrorType.permissionDenied) {
         emit(MainState.error(error: result.error!));
@@ -248,7 +279,8 @@ class MainCubit extends Cubit<MainState> {
 
   void recenterCamera() {
     _cameraFollowEnabled = true;
-    _followUserPosition(animated: true);
+    _beginLocateRecenterAnimation();
+    _followUserPosition(style: _CameraFollowStyle.locate);
     _emitLoaded();
   }
 
@@ -263,10 +295,20 @@ class MainCubit extends Cubit<MainState> {
   }
 
   Future<void> tracking() async {
-    if (_trackingStatus == TrackingStatus.pause) {
-      await _trackRecordingService.resume();
-    } else {
-      await _trackRecordingService.start();
+    await _stopRestPositionWatch();
+    try {
+      if (_trackingStatus == TrackingStatus.pause) {
+        await _trackRecordingService.resume();
+      } else {
+        await _trackRecordingService.start();
+      }
+    } catch (error, stackTrace) {
+      AppLog.e('MainCubit.tracking failed', error, stackTrace);
+      if (_trackingStatus == TrackingStatus.rest) {
+        _startRestPositionWatch();
+      }
+      _emitLoaded();
+      return;
     }
     _trackingStatus = TrackingStatus.tracking;
     _cameraFollowEnabled = true;
@@ -336,6 +378,7 @@ class MainCubit extends Cubit<MainState> {
       await _trackRepository.finalizeTrack(track);
       await _trackRecordingService.reset();
       _resetRecordingUiState();
+      _startRestPositionWatch();
       AppLog.i(
         'Track saved id=${track.id} points=${track.points.length} '
         'distance=${track.distanceMeters.toStringAsFixed(1)}m',
@@ -413,6 +456,7 @@ class MainCubit extends Cubit<MainState> {
   Future<void> deleteTrack() async {
     await _trackRecordingService.reset(discardDraft: true);
     _resetRecordingUiState();
+    _startRestPositionWatch();
     _emitLoaded();
   }
 
@@ -456,15 +500,119 @@ class MainCubit extends Cubit<MainState> {
     _elapsedTimer = null;
   }
 
-  void _followUserPosition({bool animated = false}) {
+  void _startRestPositionWatch() {
+    if (_trackingStatus != TrackingStatus.rest ||
+        _restPositionSubscription != null) {
+      return;
+    }
+    _restPositionSubscription = _geolocationService.watchPosition().listen(
+      _onRestPosition,
+      onError: (Object error, StackTrace stackTrace) {
+        AppLog.e('Rest GPS stream error', error, stackTrace);
+      },
+    );
+  }
+
+  Future<void> _stopRestPositionWatch() async {
+    await _restPositionSubscription?.cancel();
+    _restPositionSubscription = null;
+  }
+
+  void _onRestPosition(GeoFix position) {
+    if (_trackingStatus != TrackingStatus.rest) {
+      return;
+    }
+    _applyGpsFix(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      gpsHeading: position.courseDegrees,
+      speedMps: position.speedMps,
+      minDistanceMeters: Course.restMinDistanceMeters,
+    );
+    if (_cameraFollowEnabled) {
+      _followUserPosition(style: _CameraFollowStyle.smooth);
+    }
+    _emitLoaded();
+  }
+
+  void _applyGpsFix({
+    required double latitude,
+    required double longitude,
+    required double minDistanceMeters,
+    double? gpsHeading,
+    double? speedMps,
+  }) {
+    final next = LatLng(latitude, longitude);
+    final previous = _userPosition?.currentPosition;
+    final from = previous == null
+        ? null
+        : TrackPoint(
+            latitude: previous.latitude,
+            longitude: previous.longitude,
+            timestamp: DateTime.fromMillisecondsSinceEpoch(0),
+          );
+    final to = TrackPoint(
+      latitude: latitude,
+      longitude: longitude,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(0),
+    );
+    _userPosition = UserPosition(
+      currentPosition: next,
+      heading: Course.resolveCourseDegrees(
+        gpsHeading: gpsHeading,
+        speedMps: speedMps,
+        from: from,
+        to: to,
+        minDistanceMeters: minDistanceMeters,
+        previousCourseDegrees: _userPosition?.heading,
+      ),
+      speed: speedMps,
+    );
+  }
+
+  bool _isActiveRecordingFollow() {
+    return _trackingStatus == TrackingStatus.tracking ||
+        _trackingStatus == TrackingStatus.pause;
+  }
+
+  void _beginLocateRecenterAnimation() {
+    _locateRecenterAnimating = true;
+    _locateRecenterAnimationTimer?.cancel();
+    _locateRecenterAnimationTimer = Timer(mapCameraAnimationDuration, () {
+      _locateRecenterAnimating = false;
+    });
+  }
+
+  void _followUserPosition({_CameraFollowStyle style = _CameraFollowStyle.instant}) {
     final position = _userPosition?.currentPosition;
     if (position == null) {
       return;
     }
-    if (!animated && isMapCameraAnimating(_mapController)) {
+    if (style == _CameraFollowStyle.instant &&
+        isMapCameraAnimating(_mapController)) {
       return;
     }
-    moveMapCamera(_mapController, position, _currentZoom, animated: animated);
+    if (style == _CameraFollowStyle.smooth && _locateRecenterAnimating) {
+      return;
+    }
+
+    switch (style) {
+      case _CameraFollowStyle.instant:
+        moveMapCamera(_mapController, position, _currentZoom, animated: false);
+      case _CameraFollowStyle.smooth:
+        moveMapCamera(
+          _mapController,
+          position,
+          _currentZoom,
+          animated: true,
+          duration: _trackingStatus == TrackingStatus.rest
+              ? mapRestFollowAnimationDuration
+              : mapGpsFollowAnimationDuration,
+          curve: mapGpsFollowAnimationCurve,
+        );
+      case _CameraFollowStyle.locate:
+        moveMapCamera(_mapController, position, _currentZoom, animated: true);
+    }
   }
 
   void _emitLoaded() {
@@ -492,9 +640,11 @@ class MainCubit extends Cubit<MainState> {
   }
 
   @override
-  Future<void> close() {
-    _recordingSubscription?.cancel();
+  Future<void> close() async {
+    await _recordingSubscription?.cancel();
+    await _stopRestPositionWatch();
     _stopElapsedTimer();
+    _locateRecenterAnimationTimer?.cancel();
     return super.close();
   }
 }

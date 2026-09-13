@@ -27,6 +27,7 @@ class RecordingSnapshot {
     this.elapsedTime = Duration.zero,
     this.markers = const [],
     this.pauseIntervals = const [],
+    this.courseDegrees,
   });
 
   final RecordingStatus status;
@@ -38,6 +39,7 @@ class RecordingSnapshot {
   final List<Marker> markers;
   final List<PauseInterval> pauseIntervals;
   final TrackPoint? latestPosition;
+  final double? courseDegrees;
 
   TrackPoint? get lastAcceptedPoint => points.isEmpty ? null : points.last;
 }
@@ -343,6 +345,8 @@ class TrackRecordingService {
       points: points,
       startedAt: _snapshot.startedAt,
       latestPosition: trackPoint,
+      courseDegrees: GeolocationService.courseDegreesFrom(position),
+      courseSpecified: true,
     );
 
     if (acceptedNew) {
@@ -414,12 +418,16 @@ class TrackRecordingService {
     List<TrackPoint>? points,
     DateTime? startedAt,
     TrackPoint? latestPosition,
+    double? courseDegrees,
+    bool courseSpecified = false,
   }) {
     final resolvedPoints = List<TrackPoint>.unmodifiable(
       points ?? _snapshot.points,
     );
     final resolvedStartedAt = startedAt ?? _snapshot.startedAt;
     final resolvedLatest = latestPosition ?? _snapshot.latestPosition;
+    final resolvedCourse =
+        courseSpecified ? courseDegrees : _snapshot.courseDegrees;
     final base = RecordingSnapshot(
       status: status,
       sessionId: _sessionId,
@@ -429,6 +437,7 @@ class TrackRecordingService {
       latestPosition: resolvedLatest,
       markers: List<Marker>.unmodifiable(_markers),
       pauseIntervals: List<PauseInterval>.unmodifiable(_pauseIntervals),
+      courseDegrees: resolvedCourse,
     );
     _snapshot = _copySnapshotWithElapsed(base, DateTime.now());
 
@@ -461,6 +470,7 @@ class TrackRecordingService {
       elapsedTime: elapsedTime,
       markers: snapshot.markers,
       pauseIntervals: snapshot.pauseIntervals,
+      courseDegrees: snapshot.courseDegrees,
     );
   }
 }
