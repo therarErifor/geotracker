@@ -21,7 +21,7 @@ migrate_working_dir/
 # Local AI agent configs (Continue and Cursor)
 .continue/
 .cursor/
-.docs/
+docs/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -48,5 +48,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-Приложение Tropa.md
